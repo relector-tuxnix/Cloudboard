@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+
+<html>
+	<head>
+		<title>Halnyan.</title>
+
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+		<link type="image/x-icon" rel="icon" href="/images/elastic-core/favicon.ico">
+
+		<link rel="stylesheet" type="text/css" href="/styles/cloudboard/core.css">
+
+		<link rel="stylesheet" type="text/css" href="/styles/elastic-core/font-awesome.css"/>
+
+		<script type="text/javascript" src="/libs/elastic-core/jquery/jquery.min.js" charset="utf-8"></script>
+
+		<script type="text/javascript" src="/scripts/elastic-core/shared.js" charset="utf-8"></script>
+
+		<script type="text/javascript" src="/libs/cloudboard/resumable.js" charset="utf-8"></script>
+
+
+		{{#is pages.home.uri "===" page.uri}}
+
+			{{#if user}}
+
+				<script type="text/javascript">
+
+					$(document).ready(function() {
+
+						var doit;
+						var lastId = '';
+						var fileCount = 0;
+						var selected = null;
+
+						clearGrid();
+						getFiles(lastId, -1);
+
+						function clearGrid() {
+
+							var fileItem = $('#default-file-item').clone();
+							var detailsItem = $('#default-details-item').clone();
+							
+							$('#grid').empty();
+							$('#grid').append(fileItem);
+							$('#grid').append(detailsItem);
+						};
+
+						function generateGrid(data) {
+
+							data.forEach(function(file) {
+
+								console.log(file);
+
+								fileCount++;
+							
+								lastId = file.key;
+
+								fileItem = $('#default-file-item').clone();
+
+								$(fileItem).removeAttr('id');
+
+								$(fileItem).find('.options a:last').attr('href', '{{pages.returnFile.base}}' + 'view/original/' + file.key);
+
+								$(fileItem).find('.remove a:first').attr('href', '{{pages.apiRemoveFile.uri}}' + file.key);
+
+								$(fileItem).find('.tag a:first').attr('href', '/tag/' + file.key);
+
+								$(fileItem).find('img').attr('src', '{{pages.returnFile.base}}' + 'view/small-thumb/' + file.key);
+						
+								$(fileItem).css('display', 'inline-block');
+
+								$(fileItem).attr('data-count', fileCount);
+
+								$(fileItem).attr('data-id', file.key);
+
+								$('#grid').append(fileItem);
+							});
+						};
+		
+						function getFiles(startId, limit) {
+
+							$.post('{{pages.apiGetFiles.uri}}', {active: 'true', startId : startId, limit: limit, order: 'desc'}, function(data) {
+										
+								if(data.success == true) {
+									
+									if(data.end == true) {
+
+										$('#load-more').hide();
+
+									} else {
+										
+										if($("#grid li").size() > 100) {
+											clearGrid();	
+										}
+									
+									}
+								
+									var lastElement = $(".polaroid").last();
+
+									generateGrid(data.files);
+
+									showDetails(false);
+
+									$('html, body').animate({scrollTop:$(lastElement).offset().top - 90}, "slow");
+								}
+							});
+						}
+
+						function doSearch(startId, limit) {
+						
+							var search = $('#search-field').val();
+
+							console.log(search);
+
+							var doSearch = $.ajax({
+								type: "POST", 
+								url: '{{pages.apiSearch.uri}}', 
+								data: { 
+									query  : search, 
+									last   : startId, 
+									fields : ['key', 'name', 'type', 'tags', 'meta'],
+									index  : 'files',
+									type   : 'file',
+									limit  : limit
+								}
+							});
+
+							doSearch.done(function(result) {
+
+								if(result.success == true && result.message.length > 0) {
+					
+									var data = result.message;
+
+									if(data.end == true) {
+
+										$('#load-more').hide();
+
+									} else {
+										
+										if($("#grid li").size() > 100) {
+											clearGrid();	
+										}
+									}
+
+									var lastElement = $(".polaroid").last();
+
+									generateGrid(data);
+								
+									showDetails(false);
+
+									$('html, body').animate({scrollTop:$(lastElement).offset().top - 90}, "slow");
+
+								} else {
+									console.log("No search results found!");
+								}
+							});		
+
+							doSearch.fail(errorHandler);
+						}
+
+						$('#search-button').click(function() {
+							
+							fileCount = 0;
+							lastId = '';
+
+							$('#load-more').show();
+
+							$('#load-more').unbind("click");
+		
+							$('#load-more').click(function() {
+
+								$('.details').not('#default-details-item').remove();
+
+								doSearch(lastId, -1);
+							});
+
+							clearGrid();
+							doSearch(lastId, -1);
+						});
+
+						$(window).resize(function() {
+							
+							$('.details').not('#default-details-item').remove();
+
+							clearTimeout(doit);
+
+							doit = setTimeout(function() {
+								showDetails(true);
+							}, 400);
+						});
+
+						$('#load-more').click(function() {
+
+							$('.details').not('#default-details-item').remove();
+
+							getFiles(lastId, -1);
+						});
+
+						$('#grid').on('click', '.new-tag-text', function() {
+
+							$(this).html("&nbsp;");
+						});
+
+						$('#grid').on('click', '.new-tag-button', function() {
+
+							//Text will need to be validated here!!
+							var tag = $(this).prev().text();
+
+							var selected = this;
+
+							$(selected).prev().html('Add new tag...');
+
+							var key = $('.details').not('#default-details-item').attr('data-id');	
+
+							var newTag = $.ajax({
+								type: "POST", 
+								url: '{{pages.apiSaveTag.uri}}', 
+								data: { 
+									key : key,
+									tag : tag
+								}
+							});
+
+							newTag.done(function(result) {
+
+								if(result.success == true) {
+
+									var tagItem = $('#default-tag-item').clone();
+
+									$(tagItem).removeAttr('id');
+	
+									$(tagItem).children('.tag-text').html(tag);
+	
+									$(selected).closest('ul').children('.new-tag').after(tagItem);
+		
+								} else {
+
+									console.log("Failed to add new tag!");
+								}
+							});		
+
+							newTag.fail(errorHandler);
+						});
+
+						$('#grid').on('click', '.remove-tag-button', function() {
+
+							var selected = this;
+
+							var key = $('.details').not('#default-details-item').attr('data-id');	
+
+							var tag = $(selected).parent().children(':first').text();
+
+							var removeTag = $.ajax({
+								type: "POST", 
+								url: '{{pages.apiRemoveTag.uri}}', 
+								data: { 
+									key : key,
+									tag : tag
+								}
+							});
+
+							removeTag.done(function(result) {
+
+								if(result.success == true) {
+
+									$(selected).parent().remove();
+		
+								} else {
+
+									console.log("Failed to add new tag!");
+								}
+							});		
+
+							removeTag.fail(errorHandler);
+						});
+
+						$('#grid').on('click', '.remove-button', function() {
+							
+							lastId = $(selected).attr('data-id');
+
+							var removeFile = $.ajax({
+								type: "POST", 
+								url: '{{pages.apiRemoveFile.uri}}', 
+								data: { 
+									key : lastId,
+								}
+							});
+
+							removeFile.done(function(result) {
+
+								if(result.success == true) {
+
+									fileCount = $(selected).attr('data-count') - 1;
+						
+									var items = $(selected).nextAll();
+
+									$(selected).remove();
+								
+									selected = null;
+
+									$('.details').not('#default-details-item').remove();
+
+									var getCount = $(items).length - 1;
+
+									if(getCount > 0) {
+										
+										$(items).remove();
+
+										getFiles(lastId, getCount);
+									}
+		
+								} else {
+
+									console.log("Could not remove file.");
+									console.log(result.message);
+								}
+							});		
+
+							removeFile.fail(errorHandler);
+						});
+
+						$('#grid').on('click', '.polaroid', function() {
+
+							if(selected != null) {
+			
+								$(selected).css('border-color', '');
+							}
+
+							selected = this;
+
+							$(selected).css('border-color', '#222');
+
+							$('#grid').children('.details:not(:first)').remove();
+		
+							showDetails(true);
+						});
+
+						$('#grid').on('click', '.close-button', function() {
+
+							$('.details').not('#default-details-item').remove();
+
+							$(selected).css('border-color', '');
+
+							selected = null;
+						});
+
+						function findEnd(selected) {
+
+							var totalFiles = $('#grid').children().not('#default-file-item').not('#default-details-item').length;	
+
+							var fileCount = $(selected).attr('data-count');
+
+							var breakat = Math.floor( $('#grid').width() / $('.polaroid').outerWidth(true) );
+
+							var fileRow = Math.ceil(fileCount / breakat);
+
+							var endCount = fileRow * breakat;
+
+							//If we are in the last row then default to total number of files in the grid
+							if(fileCount > (totalFiles - (totalFiles % breakat))) {
+								
+								endCount = totalFiles;
+							}
+							
+							return endCount;
+						}
+				
+						function showDetails(focus) {
+				
+							if(selected == null) {
+								return;
+							}
+							
+							var endCount = findEnd(selected);
+						
+							endFile = $('div[data-count=' + endCount + ']');
+
+							var detailsItem = $('#default-details-item').clone();
+					
+							$(detailsItem).removeAttr('id');
+
+							var selectedId = $(selected).attr('data-id');
+
+							$(detailsItem).attr('data-id', selectedId);
+
+
+							var getFile = $.ajax({
+								type: "POST", 
+								url: '{{pages.apiGetFile.uri}}', 
+								data: { 
+									id : selectedId
+								}
+							});
+
+							getFile.done(function(result) {
+
+								if(result.success == true) {
+
+									var file = result.file;
+
+									file.tags.forEach(function(tag) {
+
+										//Add new tag
+										var tagItem = $(detailsItem).find('#default-tag-item').clone();
+
+										$(tagItem).removeAttr('id');
+
+										$(tagItem).children('.tag-text').html(tag);
+
+										$(detailsItem).find('.new-tag').after(tagItem);
+									});
+
+									var key = $(selected).attr('data-id');
+
+									$(detailsItem).find('.options a:first').attr('href', "/file/view/original/" + key);
+
+									$(detailsItem).children('.image-container').css("background-image","url('/file/view/medium-thumb/" + key + "')");
+
+									$(endFile).after(detailsItem);
+
+									$(detailsItem).css('display', 'block');
+
+									if(focus == true) {
+
+										//Focus on the details item
+										$('html, body').animate({scrollTop:$(selected).offset().top - 90}, "slow");
+									}
+
+								} else {
+
+									console.log("Could not get file.");
+									console.log(result.message);
+								}
+							});		
+
+							getFile.fail(errorHandler);
+						}
+					});
+
+				</script>	
+			{{/if}}
+		{{/is}}
+
+	</head>
+
+	<body>
+
+		<nav>
+			<ul>
+				{{#if user}}
+
+					<li class="active"><a href="{{pages.home.uri}}"><i class="fa fa-home"></i> Home</a></li>
+					<li><a href="{{pages.newFile.uri}}"><i class="fa fa-pencil"></i> Add</a></li>
+					<li><a href="{{pages.logout.uri}}"><i class="fa fa-hand-o-right"></i> Logout</a></li>
+					
+					<li class="search">
+						<i class="fa fa-search" id="search-button">&nbsp;</i>
+						<input type="text" value="" placeholder="SEARCH" id="search-field" name="search-field">
+					</li>
+
+				{{else}}
+	
+					<li><a href="/login"><i class="fa fa-book"></i> Login</a></li>
+					<li><a href="/register"><i class="fa fa-book"></i> Register</a></li>
+
+				{{/if}}
+			</ul>
+		</nav>
+
+
+		{{#is pages.home.uri "===" page.uri}}
+
+			{{#if user}}
+
+				<div id="grid">
+
+					<div id="default-file-item" class="polaroid">
+
+						<div class="options">
+				
+							<a href="/file/" target="_new">
+								<div class="button">
+									<em class="fa fa-arrows-alt">&nbsp;</em>
+									<span>Full</span>
+								</div>
+							</a>
+
+						</div>
+
+						<img src="">
+
+	<!--
+						<div class="lightbox">
+							<div class="details">
+								<a href="#_">X</a>
+								<img src="#">
+								<div id="details-vertical-seperator"></div>
+							</div>
+						</div>
+	-->
+
+					</div>
+
+					<div id="default-details-item" class="details">
+				
+						<div class="image-container">&nbsp;</div>
+
+						<div class="details-vertical-seperator"></div>
+			
+						<div class="details-container">
+
+							<div class="options">
+								<div class="remove-button button">
+									<em class="fa fa-trash-o">&nbsp;</em>
+									<span>Remove</span>
+								</div>
+
+								<div class="info-button button">
+									<em class="fa fa-info">&nbsp;</em>
+									<span>Info</span>
+								</div>
+
+								<a href="/file/" target="_new">
+									<div class="button">
+										<em class="fa fa-arrows-alt">&nbsp;</em>
+										<span>Full</span>
+									</div>
+								</a>
+
+								<div class="close-button button">
+									<em class="fa fa-times-circle">&nbsp;</em>
+									<span>Close</span>
+								</div>
+							</div>
+
+							<ul class="tags">
+								<li class="new-tag">
+									<div class="new-tag-text tag" unselectable="true" contentEditable="true">Add new tag...</div>
+
+									<div class="new-tag-button tag-icon tag">
+										<i class="fa fa-plus-square"></i>
+									</div>
+								</li>
+								<li id="default-tag-item">
+									<div class="tag-text tag">&nbsp;</div>
+									<div class="remove-tag-button tag-icon tag"><i class="fa fa-minus-square"></i></div>
+								</li>
+							</ul>	
+						</div>
+					</div>
+
+				</div>
+
+				<button id="load-more">Load more</button>	
+
+			{{/if}}
+
+		{{else}}
+			
+			{{#is pages.search.uri "===" page.uri}}
+
+				{{results}}		
+				
+			{{else}}
+
+				{{{body}}}
+
+			{{/is}}
+		{{/is}}
+
+	
+	</body>
+
+</html>

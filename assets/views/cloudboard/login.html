@@ -1,0 +1,14 @@
+<div id="grid">
+
+	<h2>Login</h2>
+
+	<div id="form-wrapper" class="login-wrapper">
+		<form method="post" action="{{pages.login.uri}}">
+			<input placeholder="Email" type="text" id="email" name="email" class="inputs" value="{{email}}">
+			<input placeholder="Password" type="password" id="password" name="password" class="inputs">
+			<input class="inputs" type="submit" name="save" value="Login">
+		</form>
+		<div id="login-message"><p>{{message}}</p></div>
+	</div>
+
+</div>

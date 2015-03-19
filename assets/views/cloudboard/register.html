@@ -1,0 +1,16 @@
+<div id="grid">
+
+	<h2>{{pages.register.label}}</h2>
+
+	<div id="form-wrapper">
+		<form method="post" action="{{pages.register.uri}}">
+			<input placeholder="Email" type="text" id="email" name="email" class="inputs" value="{{model.email}}">
+			<input placeholder="Password" type="password" id="password" name="password" class="inputs">
+			<input placeholder="Confirm Password" type="password" id="confirmPassword" name="confirmPassword" class="inputs">
+			<input class="inputs" type="submit" name="save" value="Register">
+		</form>
+
+		<div id="login-message"><p>{{message}}</p></div>
+	</div>
+
+</div>
