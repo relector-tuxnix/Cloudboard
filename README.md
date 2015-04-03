@@ -8,13 +8,13 @@ A private cloud that contains all your files using total.js and elastic-search.
 
 ## Getting Started
 
-Get ElasticSearch from the offical site
+Get Cloudboard
 
-    $> wget https://github.com/neonnds/Cloudboard/cloudboard-2015-03.tar.gz
+    $> wget https://github.com/neonnds/Cloudboard/cloudboard-2015-04.tar.gz
     
-Extract ElasticSearch
+Extract Cloudboard
 
-    $> tar -zxf cloudboard-2015-03.tar.gz
+    $> tar -zxf cloudboard-2015-04.tar.gz
     
 Enter the Cloudboard project
 
@@ -26,7 +26,7 @@ Get ElasticSearch from the offical site
     
 Extract ElasticSearch
 
-    $> tar -zxf elastic-blog-2015-03.tar.gz
+    $> tar -zxf elasticsearch-1.5.0.tar.gz
     
 Start Elastic Search
 
@@ -54,22 +54,14 @@ Enter the Elastic-Core project sites directory
 
     $> cd ./Elastic-Core/sites
 
-Get the Elastic-Blog project
+Get the Cloudboard project
 
-    $> git clone https://github.com/neonnds/Elastic-Blog.git
+    $> git clone https://github.com/neonnds/Cloudboard.git
 
-Enter the Elastic-Blog project
+Enter the Cloudboard project
 
-    $> cd ./Elastic-Blog
+    $> cd ./Cloudboard
 
-Get ElasticSearch from the offical site
-
-    $> wget https://download.elasticsearch.org/elasticsearch/elasticsearch/elasticsearch-1.5.0.tar.gz
-    
-Extract ElasticSearch
-
-    $> tar -zxf elastic-blog-2015-03.tar.gz
-    
 Install the following node modules
 
     $> npm install bcrypt-nodejs --save
@@ -86,6 +78,6 @@ Start Elastic Search
 
     $> ./elasticsearch-1.5.0/bin/elasticsearch
 
-Start Elastic-Core
+Start Cloudboard
 
-    $> ./run Elastic-Blog
+    $> ./run Cloudboard
