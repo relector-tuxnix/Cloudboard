@@ -212,23 +212,11 @@
 				xhr.addEventListener('load', doneHandler, false);
 				xhr.addEventListener('error', doneHandler, false);
 
-				// Set up the basic query data from Resumable
-				var query = {
-					resumableTotalSize: f.file.size,
-					resumableType: f.file.type,
-					resumableFilename: f.file.name
-				};
-
-				// Add data from the query options
-				var data = new FormData();
-
-				$h.each(query, function(k,v) {
-					data.append(k,v);
-				});
-
 				xhr.open('POST', $.getOpt('bootstrapTarget'));
+				xhr.setRequestHeader("Content-type","application/x-www-form-urlencoded");
 				xhr.timeout = $.getOpt('xhrTimeout');
-				xhr.send(data);
+
+				xhr.send('resumableTotalSize=' + f.file.size + '&resumableType=' + f.file.type + '&resumableFilename=' + f.file.name);
 			});
 		};
 
@@ -385,6 +373,7 @@
 			$.lastProgressCallback = (new Date);
 			$.tested = false;
 			$.retries = 0;
+			$.xhr = null;
 
 			// Computed properties
 			var chunkSize = $.getOpt('chunkSize');
@@ -395,8 +384,6 @@
 				// The last chunk will be bigger than the chunk size, but less than 2*chunkSize
 				$.endByte = $.fileObjSize;
 			}
-
-			$.xhr = null;
 
 			// test() makes a GET request without any data to see if the chunk has already been uploaded in a previous session
 			$.test = function() {
@@ -415,60 +402,51 @@
 
 						if(status === 'success') {
 
-							var response = JSON.parse($.xhr.responseText);
+							var response = $.message();
 
-							console.log(response);
+							if(response.message == 'not_found') {
 
-							if(response.success == true) {
-
-								if(response.message == 'not_found') {
-
-									$.send();
-								
-								//message = found
-								} else {
-
-									$.resumableObj.uploadNextChunk();
-								}
-
-							//Corrupt or other issue like logged out 401
+								console.log("Save chunk!");
+						
+								$.send();
+							
+							//message = found
 							} else {
 
-								$.callback('error', response.message);
-
-								//Cancel all uploads
-								$.fileObj.cancel();
+								console.log("Skip chunk!");
+						
+								$.resumableObj.uploadNextChunk();
 							}
+
+						//Corrupt or other issue like logged out 401
+						} else {
+
+							console.log("Error...Cancel upload!");
+
+							$.callback('error', response.message);
+
+							//Cancel all uploads
+							$.fileObj.cancel();
 						}
 					};
 
 					$.xhr.addEventListener('load', testHandler, false);
 					$.xhr.addEventListener('error', testHandler, false);
 
-					// Set up the basic query data from Resumable
-					var query = {
-						// Add extra data to identify chunk
-						resumableChunkNumber: $.offset + 1,
-						resumableChunkSize: $.getOpt('chunkSize'),
-						resumableCurrentChunkSize: $.endByte - $.startByte,
-						resumableTotalSize: $.fileObjSize,
-						resumableType: $.fileObjType,
-						resumableFilename: $.fileObj.fileName,
-						resumableRelativePath: $.fileObj.relativePath,
-						resumableTotalChunks: $.fileObj.chunks.length,
-						resumableIdentifier: $.fileObj.identifier
-					};
-
-					// Add data from the query options
-					var data = new FormData();
-
-					$h.each(query, function(k,v) {
-						data.append(k,v);
-					});
-
 					$.xhr.open('POST', $.getOpt('checkTarget'));
+					$.xhr.setRequestHeader("Content-type","application/x-www-form-urlencoded");
 					$.xhr.timeout = $.getOpt('xhrTimeout');
-					$.xhr.send(data);
+
+					$.xhr.send('resumableChunkNumber=' + ($.offset + 1) + 
+						   '&resumableChunkSize=' + $.getOpt('chunkSize') + 
+						   '&resumableCurrentChunkSize=' + ($.endByte - $.startByte) + 
+						   '&resumableTotalSize=' + $.fileObjSize + 
+						   '&resumableType=' + $.fileObjType + 
+						   '&resumableFilename=' + $.fileObj.fileName + 
+						   '&resumableRelativePath=' + $.fileObj.relativePath + 
+						   '&resumableTotalChunks=' + $.fileObj.chunks.length + 
+						   '&resumableIdentifier=' + $.fileObj.identifier 
+					);
 				},0);
 			};
 
@@ -490,25 +468,38 @@
 
 					if(status == 'success') {
 
-						var response = JSON.parse($.xhr.responseText);
-
-						if(response.success == true) {
-
-							console.log("Successfully saved chunk!");
+						console.log("Successfully saved chunk!");
 						
-							$.resumableObj.uploadNextChunk();
+						$.resumableObj.uploadNextChunk();
 
-						//Corrupt or other issue like logged out 401
-						} else {
+					//Corrupt or other issue like logged out 401
+					} else {
 
-							//Cancel all uploads
-							$.fileObj.cancel();
-						}
+						console.log("Error...cancel upload!");
+
+						//Cancel all uploads
+						$.fileObj.cancel();
 					}
 				};
 
 				$.xhr.addEventListener('load', doneHandler, false);
 				$.xhr.addEventListener('error', doneHandler, false);
+
+				/*
+				$.xhr.open('POST', $.getOpt('saveTarget'));
+				$.xhr.timeout = $.getOpt('xhrTimeout');
+
+				$.xhr.send('resumableChunkNumber=' + ($.offset + 1)  + 
+					   '&resumableChunkSize=' + $.getOpt('chunkSize') + 
+					   '&resumableCurrentChunkSize=' + ($.endByte - $.startByte) + 
+					   '&resumableTotalSize=' + $.fileObjSize + 
+					   '&resumableType=' + $.fileObjType + 
+					   '&resumableFilename=' + $.fileObj.fileName + 
+					   '&resumableRelativePath=' + $.fileObj.relativePath + 
+					   '&resumableTotalChunks=' + $.fileObj.chunks.length + 
+					   '&resumableIdentifier=' + $.fileObj.identifier
+				);
+				*/
 
 				// Set up the basic query data from Resumable
 				var query = {
@@ -525,15 +516,15 @@
 
 				var func = ($.fileObj.file.slice ? 'slice' : ($.fileObj.file.mozSlice ? 'mozSlice' : ($.fileObj.file.webkitSlice ? 'webkitSlice' : 'slice')));
 				var bytes = $.fileObj.file[func]($.startByte,$.endByte);
-				var data = null;
 
 				// Add data from the query options
-				data = new FormData();
+				var data = new FormData();
 
 				$h.each(query, function(k,v) { 
 					data.append(k,v);
 				});
 
+				//Append our actual data chunk
 				data.append($.getOpt('fileParameterName'), bytes);
 
 				$.xhr.open('POST', $.getOpt('saveTarget'));
@@ -567,6 +558,13 @@
 
 					if($.xhr.status == 200) {
 
+						var message = $.message();
+
+						if( message == '' || message.success == false) {
+					
+							return('error');
+						}	
+
 						// HTTP 200, perfect
 						return('success');
 
@@ -581,7 +579,7 @@
 			};
 
 			$.message = function(){
-				return($.xhr ? $.xhr.responseText : '');
+				return($.xhr ? JSON.parse($.xhr.responseText) : '');
 			};
 			
 			return(this);

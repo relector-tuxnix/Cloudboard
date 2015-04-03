@@ -6,9 +6,9 @@ var resumable = require('../../cloudboard/resumable-node.js')();
 exports.install = function(framework) {
 	framework.route(pages.apiGetFiles.uri, getFiles, ['post', 'authorize']);
 	framework.route(pages.apiGetFile.uri, getFile, ['post', 'authorize']);
-	framework.route(pages.apiBootstrapFile.uri, bootstrapFile, ['post', 'authorize']);
-        framework.route(pages.apiCheckFile.uri, checkFile, ['post', 'authorize']);
-        framework.route(pages.apiSaveFile.uri, postSaveFile, { flags: ['post', 'authorize'], length: 819200 });
+	framework.route(pages.apiBootstrapFile.uri, bootstrapFile, ['+xhr', 'post', 'authorize']);
+        framework.route(pages.apiCheckFile.uri, checkFile, ['+xhr', 'post', 'authorize']);
+        framework.route(pages.apiSaveFile.uri, postSaveFile, { flags: ['+xhr', 'upload', 'post', 'authorize'], length: 819200 });
         framework.route(pages.apiRemoveFile.uri, postRemoveFile, ['post', 'authorize']);
         
         framework.route(pages.apiSaveTag.uri, postSaveTag, ['post', 'authorize']);
@@ -80,8 +80,7 @@ function returnFile(action, type, key)
 
 				if(type == "original") {
 			
-					#The path is not correct and has to be fixed!
-					fs.readFile('./live/files/original/' + result.file.key, function (err, data) {
+					fs.readFile(self.config['files-original-dir'] + result.file.key, function (err, data) {
 
 						if(err) {
 
@@ -102,12 +101,10 @@ function returnFile(action, type, key)
 
 			} else {
 
-				#The path is not correct and has to be fixed!
-				fs.readFile('./live/files/' + type + '/' + result.file.key, function (err, data) {
+				fs.readFile(self.config['files-' + type + '-dir'] + result.file.key, function (err, data) {
 				
 					if(err) {
 
-						console.log(err);
 						self.view404();
 				
 					} else {
@@ -211,8 +208,12 @@ function postSaveFile()
 
 			var file = result.file; 
 
+			console.log("HERERERERE");
+
 			//Returns: DONE, PARTLY_DONE, FAILED
 			resumable.post(self, function(status) {
+
+				console.log("STATSS" + status);
 
 				if(status == 'done') {
 
@@ -262,7 +263,7 @@ function postSaveFile()
 
 						} else {
 						
-							self.json({success: true, message: status});
+							self.json({success: false, message: status});
 						}
 					});
 

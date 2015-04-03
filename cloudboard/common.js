@@ -1,3 +1,4 @@
+var framework = require('total.js');
 var fs = require('fs');
 var hb = require('handlebars');
 var hb = require('handlebars');
@@ -5,20 +6,16 @@ var hbs = require('handlebars-form-helpers');
 var cuid = require('cuid');
 var gm = require('gm');
 var async = require('async');
-var mime = require('mime');
-
 var db = require('./database.js');
+
+var $ = module.exports = require('../elastic-core/common.js');
+
 var defaultLimit = 50;
-var tmpStoreLocation = "./tmp/resumable.js/";
-#This needs to be fixed!!!
-var fileStoreLocation = './live/files/'; 
-var originalLocation = fileStoreLocation + 'original/';
-var mediumThumbLocation = fileStoreLocation + 'medium-thumb/';
-var smallThumbLocation = fileStoreLocation + 'small-thumb/';
-
-module.exports = require('../elastic-core/common.js');
-
-var $ = module.exports;
+var fileStoreLocation = framework.config['files-dir'];
+var tmpStoreLocation = framework.config['files-tmp-dir'];
+var originalLocation = framework.config['files-original-dir'];
+var mediumThumbLocation = framework.config['files-medium-thumb-dir'];
+var smallThumbLocation = framework.config['files-small-thumb-dir'];
 
 $.EBStoreFile = function(self, callback) {
 
@@ -125,7 +122,8 @@ $.EBStoreFile = function(self, callback) {
 			}
 
 		} else {
-
+			
+			console.log(err);
 			callback(null);
 		}
 	});
@@ -210,7 +208,10 @@ $.EBCompleteFile = function(file, callback) {
  */
 function uploadFile(file, callback) {
 
+	console.log("UPPPPING FILES BITCH!!!");
+
 	console.log(file.key);
+	
 
 	fs.rename(tmpStoreLocation + file.name, originalLocation + file.key, function(errFull) {
 			
@@ -320,8 +321,6 @@ $.EBGetFiles = function(self, callback) {
 		];
 	}
 
-	console.log(body);
-
 	db.client.search({
 		index: 'files',
 		type: 'file',
@@ -329,8 +328,6 @@ $.EBGetFiles = function(self, callback) {
 		body: body
 	}, function (err, response) {
 	
-		console.log(response);
-
 		if(err == null) {
 
 			var files = [];
@@ -387,8 +384,6 @@ $.EBGetFile = function(self, key, callback) {
 		body: body
 	}, function (err, response) {
 	
-		console.log(response);
-
 		if(err == null) {
 
 			if(response.hits.hits.length == 0) {

@@ -1,60 +1,58 @@
-var pages = require('../elastic-core/pages.js'); 
-
 //Override elastic-core pages
-module.exports = pages;
+var $ = module.exports = require('../elastic-core/pages.js'); 
 
-module.exports.apiGetFiles = {
+$.apiGetFiles = {
 	uri: '/api/get-files',
 	label: 'Get Files',
 }
 
-module.exports.apiGetFile = {
+$.apiGetFile = {
 	uri: '/api/get-file',
 	label: 'Get File',
 }
 
-module.exports.returnFile = {
+$.returnFile = {
 	uri: '/file/{action}/{type}/{key}/',
 	base: '/file/',
 	label: 'Return File',
 }
 	
-module.exports.apiBootstrapFile = {
+$.apiBootstrapFile = {
 	uri: '/api/bootstrap-file',
 	label: 'Boostrap File',
 }
 
-module.exports.apiCheckFile = {
+$.apiCheckFile = {
 	uri: '/api/check-file',
 	label: 'Check File',
 }
 
-module.exports.apiSaveFile = {
+$.apiSaveFile = {
 	uri: '/api/save-file',
 	label: 'Save File',
 }
 
-module.exports.apiRemoveFile = {
+$.apiRemoveFile = {
 	uri: '/api/remove-file',
 	label: 'Remove File.',
 }
 
-module.exports.apiSaveTag = {
+$.apiSaveTag = {
 	uri: '/api/save-tag',
 	label: 'Save Tag.',
 }
 
-module.exports.apiRemoveTag = {
+$.apiRemoveTag = {
 	uri: '/api/remove-tag',
 	label: 'Remove Tag.',
 }
 
-module.exports.default = {
+$.default = {
 	label: 'Cloudboard',
 	view: 'cloudboard/default',
 };
 
-module.exports.error = {
+$.error = {
 	uri: '/error',
 	label: 'Error Occured',
 	view: 'cloudboard/error',
@@ -62,7 +60,7 @@ module.exports.error = {
 	below: []
 };
 
-module.exports.newFile = {
+$.newFile = {
 	uri: '/new-file',
 	label: 'New File',
 	view: 'cloudboard/newFile',
@@ -70,7 +68,7 @@ module.exports.newFile = {
 	below: []
 }
 
-module.exports.viewFiles = {
+$.viewFiles = {
 	uri: '/view-files',
 	label: 'Cloudboard',
 	view: 'cloudboard/default',
@@ -78,7 +76,7 @@ module.exports.viewFiles = {
 	below: []
 };
 
-module.exports.login = {
+$.login = {
 	uri: '/login',
 	label: 'Cloudboard',
 	view: 'cloudboard/login',
@@ -86,14 +84,14 @@ module.exports.login = {
 	below: []
 };
 
-module.exports.logout = {
+$.logout = {
 	uri: '/logout',
 	label: 'Logout',
 	above: [],
 	below: []
 };
 
-module.exports.home = {
+$.home = {
 	uri: '/',
 	label: 'Cloudboard',
 	view: 'cloudboard/default',
@@ -101,7 +99,7 @@ module.exports.home = {
 	below: []
 };
 
-module.exports.register = {
+$.register = {
 	uri: '/register',
 	label: 'Register',
 	view: 'cloudboard/register',
@@ -109,7 +107,7 @@ module.exports.register = {
 	below: []
 };
 
-module.exports.search = {
+$.search = {
 	uri: '/search/{query}',
 	base: '/search',
 	label: 'Search',
@@ -121,25 +119,14 @@ module.exports.search = {
 
 //RELATIONSHIPS
 
-/*
-module.exports.home.below = [
-	module.exports.search, 
-	module.exports.newPost, 
-	module.exports.newQuote, 
-	module.exports.newFile, 
-	module.exports.updatePost, 
-	module.exports.updateQuote, 
-	module.exports.viewPost, 
-	module.exports.viewQuotes
+$.home.below = [
+	$.register,
+	$.search,
+	$.newFile,
+	$.viewFiles
 ];
 
-module.exports.newPost.above = [module.exports.home];
-module.exports.updatePost.above = [module.exports.home];
-module.exports.newQuote.above = [module.exports.home];
-module.exports.updateQuote.above = [module.exports.home];
-module.exports.viewPost.above = [module.exports.home];
-module.exports.viewQuotes.above = [module.exports.home];
-module.exports.search.above = [module.exports.home];
-module.exports.newFile.above = [module.exports.home];
-module.exports.viewFiles.above = [module.exports.home];
-*/
+$.register.above = [$.home];
+$.search.above = [$.home];
+$.newFile.above = [$.home];
+$.viewFiles.above = [$.home];

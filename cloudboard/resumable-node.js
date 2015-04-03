@@ -1,12 +1,13 @@
 var fs = require('fs');
+var framework = require('total.js');
 var path = require('path');
 var util = require('util');
 
 module.exports = resumable = function() {
 	
 	var $ = this;
-	
-	$.temporaryFolder = './tmp/resumable.js';
+
+	$.temporaryFolder = framework.config['files-tmp-dir'];
 	$.maxFileSize = null;
 
 	var cleanIdentifier = function(identifier) {
@@ -120,6 +121,9 @@ module.exports = resumable = function() {
 		}
 
 		var file = self.files.pop();
+
+console.log(file);
+
 		var chunkNumber = self.post.resumableChunkNumber;
 		var chunkSize = self.post.resumableChunkSize;
 		var totalSize = self.post.resumableTotalSize;
@@ -127,9 +131,13 @@ module.exports = resumable = function() {
 
 		var validate = validateRequest(chunkNumber, chunkSize, totalSize, identifier, file.length);
 
+console.log(validate);
+
 		if(validate == 'valid') {
 		
 			var chunkFilename = getChunkFilename(self, chunkNumber, identifier);
+
+console.log(chunkFilename);
 
 			// Save the chunk (TODO: OVERWRITE)
 			fs.rename(file.path, chunkFilename, function() {
@@ -158,6 +166,7 @@ module.exports = resumable = function() {
 
 						} else {
 
+							console.log("WE ARE HERE!!");
 							callback('partly_done');
 						}
 					});
@@ -167,6 +176,8 @@ module.exports = resumable = function() {
 			});
 
 		} else {
+
+			console.log("HERE2@");
 
 			callback('failed');
 		}
