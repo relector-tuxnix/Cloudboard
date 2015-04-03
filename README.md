@@ -45,6 +45,9 @@ Start Cloudboard
 
 * [CUID](https://github.com/ericelliott/cuid)
 
+* [GM](https://github.com/aheckmann/gm)
+
+* [async](https://github.com/caolan/async) 
 
 ### Linux Installation
 
@@ -65,6 +68,10 @@ Install the following node modules
     $> npm install bcrypt-nodejs --save
     
     $> npm install cuid --save
+    
+    $> npm install gm --save
+    
+    $> npm install async --save
 
 Enter the Elastic-Core project
 
