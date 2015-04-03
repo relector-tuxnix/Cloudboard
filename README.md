@@ -3,7 +3,7 @@ A private cloud that contains all your files using total.js and elastic-search.
 
 ## Releases
 
-* [Version 2015.03](https://github.com/neonnds/Cloudboard/cloudboard-2015-03.tar.gz)
+* [Version 2015.04](https://github.com/neonnds/Cloudboard/cloudboard-2015-04.tar.gz)
 
 
 ## Getting Started
@@ -44,9 +44,7 @@ Start Cloudboard
 * [Elastic-Core](https://github.com/neonnds/Elastic-Core)
 
 * [CUID](https://github.com/ericelliott/cuid)
-
-* [Textile-js](https://github.com/borgar/textile-js)
-
+* 
 
 ### Linux Installation
 
@@ -67,8 +65,6 @@ Install the following node modules
     $> npm install bcrypt-nodejs --save
     
     $> npm install cuid --save
-    
-    $> npm install textile-js --save
 
 Enter the Elastic-Core project
 
