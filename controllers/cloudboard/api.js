@@ -6,8 +6,8 @@ var resumable = require('../../cloudboard/resumable-node.js')();
 exports.install = function(framework) {
 	framework.route(pages.apiGetFiles.uri, getFiles, ['post', 'authorize']);
 	framework.route(pages.apiGetFile.uri, getFile, ['post', 'authorize']);
-	framework.route(pages.apiBootstrapFile.uri, bootstrapFile, ['+xhr', 'post', 'authorize']);
-        framework.route(pages.apiCheckFile.uri, checkFile, ['+xhr', 'post', 'authorize']);
+	framework.route(pages.apiBootstrapFile.uri, bootstrapFile, ['+xhr', 'upload', 'post', 'authorize']);
+        framework.route(pages.apiCheckFile.uri, checkFile, ['+xhr', 'upload', 'post', 'authorize']);
         framework.route(pages.apiSaveFile.uri, postSaveFile, { flags: ['+xhr', 'upload', 'post', 'authorize'], length: 819200 });
         framework.route(pages.apiRemoveFile.uri, postRemoveFile, ['post', 'authorize']);
         

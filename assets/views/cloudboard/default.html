@@ -59,13 +59,13 @@
 
 								$(fileItem).removeAttr('id');
 
-								$(fileItem).find('.options a:last').attr('href', '{{pages.returnFile.base}}' + 'view/original/' + file.key);
+								$(fileItem).find('.options a:last').attr('href', '{{pages.returnFile.base}}' + '/view/original/' + file.key);
 
 								$(fileItem).find('.remove a:first').attr('href', '{{pages.apiRemoveFile.uri}}' + file.key);
 
 								$(fileItem).find('.tag a:first').attr('href', '/tag/' + file.key);
 
-								$(fileItem).find('img').attr('src', '{{pages.returnFile.base}}' + 'view/small-thumb/' + file.key);
+								$(fileItem).find('img').attr('src', '{{pages.returnFile.base}}' + '/view/small-thumb/' + file.key);
 
 								$(fileItem).find('.filename').html(file.name);
 

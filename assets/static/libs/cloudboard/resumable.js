@@ -30,6 +30,7 @@
 
 		$.files = [];
 		$.tags = [];
+		$.allowPublic = false;
 
 		$.defaults = {
 			chunkSize: 1*1024*1024,
@@ -218,7 +219,8 @@
 					resumableTotalSize: f.file.size,
 					resumableType: f.file.type,
 					resumableFilename: f.file.name,
-					tags: JSON.stringify($.tags)
+					tags: JSON.stringify($.tags),
+					allowPublic: $.allowPublic
 				};
 
 				// Add data from the query options
@@ -657,6 +659,10 @@
 
 		$.setTags = function(tags) {
 			$.tags = tags;
+		};
+
+		$.setPublic = function(state) {
+			$.allowPublic = state;
 		};
 
 		$.assignBrowse = function(domNodes) {

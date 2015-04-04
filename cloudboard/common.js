@@ -24,6 +24,7 @@ $.EBStoreFile = function(self, callback) {
 	var type = self.post.resumableType;
 	var filename = self.post.resumableFilename;
 	var tags = JSON.parse(self.post.tags);
+	var allowPublic = self.post.allowPublic;
 
 	var generateFile = function() {
 
@@ -32,7 +33,7 @@ $.EBStoreFile = function(self, callback) {
 		body.key = cuid();
 		body.name = filename;		
 		body.user = user;
-		body.public = false;
+		body.public = allowPublic;
 		body.active = false;
 		body.type = type;
 		body.size = totalSize;

@@ -257,6 +257,7 @@
 			}
 		});
 
+
 		$('#history').on('click', '.fa-play', function() {
 		
 			console.log("Play");
@@ -276,6 +277,28 @@
 			r.cancelOne(key);
 
 			removeOne(key);
+		});
+
+		$('#upload-options').on('click', '.fa-check-circle', function() {
+		
+			$(this).removeClass().addClass('fa fa-times-circle');
+
+			$(this).closest('.progress-bar').children('h5').text('Public Access Allowed');
+
+			$(this).closest('.progress-bar').removeClass().addClass('progress-bar actions pending');
+
+			r.setPublic(true);
+		});
+
+		$('#upload-options').on('click', '.fa-times-circle', function() {
+		
+			$(this).removeClass().addClass('fa fa-check-circle');
+
+			$(this).closest('.progress-bar').children('h5').text('Public Access Denied');
+
+			$(this).closest('.progress-bar').removeClass().addClass('progress-bar actions failed');
+
+			r.setPublic(false);
 		});
 
 
@@ -333,7 +356,7 @@
 
 			if(file.active == true) {
 			
-				$(item).find('a.filename').attr('href', "/file/view/original/" + file.key);
+				$(item).find('a.filename').attr('href', "{{pages.returnFile.base}}/view/original/" + file.key);
 				$(item).find('a.filename').text(file.name);
 		
 				$(item).find('span.filename').css('display', 'none');
@@ -483,6 +506,7 @@
 		</div>
 
 		<div id="upload-options">
+
 			<ul class="tags">
 				<li class="new-tag">
 					<div class="new-tag-text tag" unselectable="true" contentEditable="true">Add new tag...</div>
@@ -496,6 +520,15 @@
 					<div class="remove-tag-button tag-icon tag"><i class="fa fa-minus-square"></i></div>
 				</li>
 			</ul>	
+
+			<span class="message">
+				<div class="progress-bar actions failed">
+					<h5>Public Access Denied</h5>
+					<div class="progress-bar-buttons">
+						<em class="fa fa-check-circle">&nbsp;</em>
+					</div>
+				</div>
+			</span>
 		</div>
 
 		<div id="history">

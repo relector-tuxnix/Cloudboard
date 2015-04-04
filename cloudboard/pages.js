@@ -13,7 +13,7 @@ $.apiGetFile = {
 
 $.returnFile = {
 	uri: '/file/{action}/{type}/{key}/',
-	base: '/file/',
+	base: '/file',
 	label: 'Return File',
 }
 	
