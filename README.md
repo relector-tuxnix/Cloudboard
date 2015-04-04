@@ -5,7 +5,6 @@ A private cloud that contains all your files using total.js and elastic-search.
 
 * [Version 2015.04](https://github.com/neonnds/Cloudboard/cloudboard-2015-04.tar.gz)
 
-
 ## Getting Started
 
 Get Cloudboard
@@ -47,7 +46,7 @@ Start Cloudboard
 
 * [GM](https://github.com/aheckmann/gm)
 
-* [async](https://github.com/caolan/async) 
+* [Async](https://github.com/caolan/async) 
 
 ### Linux Installation
 
