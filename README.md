@@ -56,7 +56,7 @@ Start Cloudboard
 
 * [GM](https://github.com/aheckmann/gm)
 
-* [async](https://github.com/caolan/async) 
+* [Async](https://github.com/caolan/async) 
 
 ### Linux Installation
 
