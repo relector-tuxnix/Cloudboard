@@ -66,7 +66,9 @@
 								$(fileItem).find('.tag a:first').attr('href', '/tag/' + file.key);
 
 								$(fileItem).find('img').attr('src', '{{pages.returnFile.base}}' + 'view/small-thumb/' + file.key);
-						
+
+								$(fileItem).find('.filename').html(file.name);
+
 								$(fileItem).css('display', 'inline-block');
 
 								$(fileItem).attr('data-count', fileCount);
@@ -488,6 +490,8 @@
 						</div>
 
 						<img src="">
+
+						<div class="filename">&nbsp;</div>
 
 	<!--
 						<div class="lightbox">

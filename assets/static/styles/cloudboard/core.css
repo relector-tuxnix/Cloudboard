@@ -252,19 +252,27 @@ nav {
 	}
 
 
-.options {
-	border: 0 none;
-	left: 160px;
-	opacity: 0;
-	padding: 0;
-	position: absolute;
-	top: 0;
-}
-
-	.options:hover {
-		opacity: 1;
+	.polaroid .options {
+		border: 0 none;
+		left: 160px;
+		opacity: 0;
+		padding: 0;
+		position: absolute;
+		top: 0;
 	}
 
+		.polaroid .options:hover {
+			opacity: 1;
+		}
+
+
+	.polaroid .filename {
+		height: 30px;
+		text-align: center;
+		overflow: hidden;
+		padding: 0 0 5px 18px;
+		width: 198px;
+	}
 
 .button {
 	text-align: center;
@@ -330,7 +338,6 @@ nav {
  	background-size: auto auto;
 	height: 100%;
 	width: 70%;
-	box-shadow: 0 5px 35px rgba(0,0,0,.65);
 }
 
 .details {
