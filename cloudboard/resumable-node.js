@@ -122,8 +122,6 @@ module.exports = resumable = function() {
 
 		var file = self.files.pop();
 
-console.log(file);
-
 		var chunkNumber = self.post.resumableChunkNumber;
 		var chunkSize = self.post.resumableChunkSize;
 		var totalSize = self.post.resumableTotalSize;
@@ -131,13 +129,9 @@ console.log(file);
 
 		var validate = validateRequest(chunkNumber, chunkSize, totalSize, identifier, file.length);
 
-console.log(validate);
-
 		if(validate == 'valid') {
 		
 			var chunkFilename = getChunkFilename(self, chunkNumber, identifier);
-
-console.log(chunkFilename);
 
 			// Save the chunk (TODO: OVERWRITE)
 			fs.rename(file.path, chunkFilename, function() {
@@ -166,7 +160,6 @@ console.log(chunkFilename);
 
 						} else {
 
-							console.log("WE ARE HERE!!");
 							callback('partly_done');
 						}
 					});
@@ -176,8 +169,6 @@ console.log(chunkFilename);
 			});
 
 		} else {
-
-			console.log("HERE2@");
 
 			callback('failed');
 		}

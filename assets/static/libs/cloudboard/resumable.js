@@ -29,6 +29,7 @@
 		var $ = this;
 
 		$.files = [];
+		$.tags = [];
 
 		$.defaults = {
 			chunkSize: 1*1024*1024,
@@ -139,7 +140,7 @@
 		};
 
 		// INTERNAL METHODS (both handy and responsible for the heavy load)
-		var appendFilesFromFileList = function(fileList, event){
+		var appendFilesFromFileList = function(fileList, event) {
 
 			$h.each(fileList, function(file) {
 
@@ -212,11 +213,24 @@
 				xhr.addEventListener('load', doneHandler, false);
 				xhr.addEventListener('error', doneHandler, false);
 
-				xhr.open('POST', $.getOpt('bootstrapTarget'));
-				xhr.setRequestHeader("Content-type","application/x-www-form-urlencoded");
-				xhr.timeout = $.getOpt('xhrTimeout');
+				// Set up the basic query data from Resumable
+				var query = {
+					resumableTotalSize: f.file.size,
+					resumableType: f.file.type,
+					resumableFilename: f.file.name,
+					tags: JSON.stringify($.tags)
+				};
 
-				xhr.send('resumableTotalSize=' + f.file.size + '&resumableType=' + f.file.type + '&resumableFilename=' + f.file.name);
+				// Add data from the query options
+				var data = new FormData();
+
+				$h.each(query, function(k,v) {
+					data.append(k,v);
+				});
+
+				xhr.open('POST', $.getOpt('bootstrapTarget'));
+				xhr.timeout = $.getOpt('xhrTimeout');
+				xhr.send(data);
 			});
 		};
 
@@ -433,20 +447,30 @@
 					$.xhr.addEventListener('load', testHandler, false);
 					$.xhr.addEventListener('error', testHandler, false);
 
-					$.xhr.open('POST', $.getOpt('checkTarget'));
-					$.xhr.setRequestHeader("Content-type","application/x-www-form-urlencoded");
-					$.xhr.timeout = $.getOpt('xhrTimeout');
+					// Set up the basic query data from Resumable
+					var query = {
+						// Add extra data to identify chunk
+						resumableChunkNumber: $.offset + 1,
+						resumableChunkSize: $.getOpt('chunkSize'),
+						resumableCurrentChunkSize: $.endByte - $.startByte,
+						resumableTotalSize: $.fileObjSize,
+						resumableType: $.fileObjType,
+						resumableFilename: $.fileObj.fileName,
+						resumableRelativePath: $.fileObj.relativePath,
+						resumableTotalChunks: $.fileObj.chunks.length,
+						resumableIdentifier: $.fileObj.identifier
+					};
 
-					$.xhr.send('resumableChunkNumber=' + ($.offset + 1) + 
-						   '&resumableChunkSize=' + $.getOpt('chunkSize') + 
-						   '&resumableCurrentChunkSize=' + ($.endByte - $.startByte) + 
-						   '&resumableTotalSize=' + $.fileObjSize + 
-						   '&resumableType=' + $.fileObjType + 
-						   '&resumableFilename=' + $.fileObj.fileName + 
-						   '&resumableRelativePath=' + $.fileObj.relativePath + 
-						   '&resumableTotalChunks=' + $.fileObj.chunks.length + 
-						   '&resumableIdentifier=' + $.fileObj.identifier 
-					);
+					// Add data from the query options
+					var data = new FormData();
+
+					$h.each(query, function(k,v) {
+						data.append(k,v);
+					});
+
+					$.xhr.open('POST', $.getOpt('checkTarget'));
+					$.xhr.timeout = $.getOpt('xhrTimeout');
+					$.xhr.send(data);
 				},0);
 			};
 
@@ -484,22 +508,6 @@
 
 				$.xhr.addEventListener('load', doneHandler, false);
 				$.xhr.addEventListener('error', doneHandler, false);
-
-				/*
-				$.xhr.open('POST', $.getOpt('saveTarget'));
-				$.xhr.timeout = $.getOpt('xhrTimeout');
-
-				$.xhr.send('resumableChunkNumber=' + ($.offset + 1)  + 
-					   '&resumableChunkSize=' + $.getOpt('chunkSize') + 
-					   '&resumableCurrentChunkSize=' + ($.endByte - $.startByte) + 
-					   '&resumableTotalSize=' + $.fileObjSize + 
-					   '&resumableType=' + $.fileObjType + 
-					   '&resumableFilename=' + $.fileObj.fileName + 
-					   '&resumableRelativePath=' + $.fileObj.relativePath + 
-					   '&resumableTotalChunks=' + $.fileObj.chunks.length + 
-					   '&resumableIdentifier=' + $.fileObj.identifier
-				);
-				*/
 
 				// Set up the basic query data from Resumable
 				var query = {
@@ -588,9 +596,9 @@
 		// QUEUE
 		$.uploadNextChunk = function() {
 
-			var found = false;
+			var found = 0;
 
-			// Now, simply look for the next, best thing to upload
+			// Now, simply look for the next best thing to upload per file
 			$h.each($.files, function(file) {
 				
 				if(file.isPaused() === false) {
@@ -599,22 +607,26 @@
 					
 						if(chunk.status() == 'pending') {
 
+							//Send the chunk to the server side to be saved!
 							chunk.send();
 
-							found = true;
+							found++;
 
-							return(false);
+							return;
 						}
 					});
 				}
 
-				if(found) {
-					return(false);
+				//We have reached our upper limit on active uploads
+				if(found == $.getOpt('simultaneousUploads')) {
+
+					return;
 				}
 			});
 
-			if(found) {
-				return(true);
+			//We have file chunks uploading
+			if(found != 0) {
+				return;
 			}
 
 			// The are no more outstanding chunks to upload, check is everything is done
@@ -643,15 +655,18 @@
 		 *  PUBLIC METHODS FOR RESUMABLE.JS
 		 */
 
-		$.assignBrowse = function(domNodes, isDirectory) {
+		$.setTags = function(tags) {
+			$.tags = tags;
+		};
 
-			console.log("DROPPED!");
+		$.assignBrowse = function(domNodes) {
 
-			if(typeof(domNodes.length)=='undefined') {
+			if(typeof(domNodes.length) == 'undefined') {
 				domNodes = [domNodes];
 			}
 
 			$h.each(domNodes, function(domNode) {
+
 				var input;
 				
 				if(domNode.tagName==='INPUT' && domNode.type==='file') {
@@ -676,12 +691,7 @@
 				}
 				
 				input.setAttribute('multiple', 'multiple');
-			
-				if(isDirectory) {
-					input.setAttribute('webkitdirectory', 'webkitdirectory');
-				} else {
-					input.removeAttribute('webkitdirectory');
-				}
+				input.removeAttribute('webkitdirectory');
 				
 				// When new files are added, simply append them to the overall list
 				input.addEventListener('change', function(e) {

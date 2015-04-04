@@ -23,6 +23,7 @@ $.EBStoreFile = function(self, callback) {
 	var totalSize = self.post.resumableTotalSize;
 	var type = self.post.resumableType;
 	var filename = self.post.resumableFilename;
+	var tags = JSON.parse(self.post.tags);
 
 	var generateFile = function() {
 
@@ -37,7 +38,7 @@ $.EBStoreFile = function(self, callback) {
 		body.size = totalSize;
 		body.success = 'Pending';
 		body.message = 'Waiting to start upload...'; 
-		body.tags = []; 
+		body.tags = tags; 
 		body.meta = JSON.stringify({width: 0, height: 0});
 		body.created = new Date();
 
