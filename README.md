@@ -13,6 +13,7 @@ A private cloud that contains all your files using total.js and elastic-search.
 * Allow set public flag on uploads
 * Add advance search options
 * Add input validation
+* Cross browser testings
 
 ## Getting Started
 
