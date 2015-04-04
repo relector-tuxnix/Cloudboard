@@ -5,6 +5,14 @@ A private cloud that contains all your files using total.js and elastic-search.
 
 * [Version 2015.04](https://github.com/neonnds/Cloudboard/cloudboard-2015-04.tar.gz)
 
+## Todo
+
+* Complete Information Panel
+* Allow for bulk tagging of uploads
+* Allow for pause and resume of individual uploads
+* Allow set public flag on uploads
+* Add advance search options
+* Add input validation
 
 ## Getting Started
 
