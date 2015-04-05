@@ -285,7 +285,8 @@
 
 			$(this).closest('.progress-bar').children('h5').text('Public Access Allowed');
 
-			$(this).closest('.progress-bar').removeClass().addClass('progress-bar actions pending');
+			//By removing actions class we hide the button
+			$(this).closest('.progress-bar').removeClass().addClass('progress-bar pending');
 
 			r.setPublic(true);
 		});
@@ -296,9 +297,39 @@
 
 			$(this).closest('.progress-bar').children('h5').text('Public Access Denied');
 
-			$(this).closest('.progress-bar').removeClass().addClass('progress-bar actions failed');
+			//By removing actions class we hide the button
+			$(this).closest('.progress-bar').removeClass().addClass('progress-bar failed');
 
 			r.setPublic(false);
+		});
+
+		$('#upload-options .progress-bar').hover(function(e) {
+
+			var text = $(this).children('h5').text();
+
+			if(e.type == "mouseenter") {
+
+				if(text == "Public Access Allowed") {
+
+					$(this).removeClass().addClass('progress-bar actions failed');
+
+				} else {
+
+					$(this).removeClass().addClass('progress-bar actions pending');
+				}
+			
+			} else {
+
+				if(text == "Public Access Allowed") {
+
+					$(this).removeClass().addClass('progress-bar actions pending');
+
+				} else {
+
+					$(this).removeClass().addClass('progress-bar actions failed');
+				}
+			}
+
 		});
 
 
