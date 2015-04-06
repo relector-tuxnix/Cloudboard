@@ -131,15 +131,6 @@
 			}
 		};
 
-		var onDrop = function(event){
-			$h.stopEvent(event);
-			appendFilesFromFileList(event.dataTransfer.files, event);
-		};
-
-		var onDragOver = function(e) {
-			e.preventDefault();
-		};
-
 		// INTERNAL METHODS (both handy and responsible for the heavy load)
 		var appendFilesFromFileList = function(fileList, event) {
 
@@ -665,64 +656,44 @@
 			$.allowPublic = state;
 		};
 
-		$.assignBrowse = function(domNodes) {
+		$.assignBrowse = function(box, input) {
 
-			if(typeof(domNodes.length) == 'undefined') {
-				domNodes = [domNodes];
-			}
+			box.addEventListener('click', function() {
+				input.style.opacity = 0;
+				input.style.display='block';
+				input.focus();
+				input.click();
+				input.style.display='none';
+			}, false);
 
-			$h.each(domNodes, function(domNode) {
-
-				var input;
-				
-				if(domNode.tagName==='INPUT' && domNode.type==='file') {
-
-					input = domNode;
-
-				} else {
-
-					input = document.createElement('input');
-					input.setAttribute('type', 'file');
-					input.style.display = 'none';
-
-					domNode.addEventListener('click', function() {
-						input.style.opacity = 0;
-						input.style.display='block';
-						input.focus();
-						input.click();
-						input.style.display='none';
-					}, false);
-
-					domNode.appendChild(input);
-				}
-				
-				input.setAttribute('multiple', 'multiple');
-				input.removeAttribute('webkitdirectory');
-				
-				// When new files are added, simply append them to the overall list
-				input.addEventListener('change', function(e) {
-					appendFilesFromFileList(e.target.files, e);
-					e.target.value = '';
-				}, false);
-			});
+			// When new files are added, simply append them to the overall list
+			input.addEventListener('change', function(e) {
+				appendFilesFromFileList(e.target.files, e);
+				e.target.value = '';
+			}, false);
 		};
 
-		$.assignDrop = function(domNodes) {
-			if(typeof(domNodes.length)=='undefined') domNodes = [domNodes];
+		var onDrop = function(event) {
 
-			$h.each(domNodes, function(domNode) {
-				    domNode.addEventListener('dragover', onDragOver, false);
-				    domNode.addEventListener('drop', onDrop, false);
-			});
+			$h.stopEvent(event);
+
+			appendFilesFromFileList(event.dataTransfer.files, event);
 		};
 
-		$.unAssignDrop = function(domNodes) {
-			if (typeof(domNodes.length) == 'undefined') domNodes = [domNodes];
+		var onDragOver = function(e) {
 
-			$h.each(domNodes, function(domNode) {
-				domNode.removeEventListener('dragover', onDragOver);
-				domNode.removeEventListener('drop', onDrop);
-			});
+			e.preventDefault();
+		};
+
+		$.assignDrop = function(box) {
+
+			box.addEventListener('dragover', onDragOver, false);
+			box.addEventListener('drop', onDrop, false);
+		};
+
+		$.unAssignDrop = function(box) {
+			box.removeEventListener('dragover', onDragOver);
+			box.removeEventListener('drop', onDrop);
 		};
 
 		$.isUploading = function() {
@@ -763,9 +734,18 @@
 			var file = $.getFromUniqueIdentifier(key);
 
 			if(file != false) {
+
 				file.resume();	
 
 				$.upload();
+
+				return true;
+
+			} else {
+
+				console.log("Please queue the file again!");
+
+				return false;
 			}			
 		};
 
@@ -774,8 +754,13 @@
 			var file = $.getFromUniqueIdentifier(key);
 
 			if(file != false) {
+
 				file.pause();	
+
+				return true;
 			}	
+
+			return false;
 		};
 
 		$.pauseAll = function(){
@@ -793,8 +778,13 @@
 			var file = $.getFromUniqueIdentifier(key);
 
 			if(file != false) {
+
 				file.cancel();	
+
+				return true;
 			}	
+
+			return false;
 		};
 
   	  	$.cancelAll = function() {

@@ -550,6 +550,11 @@ nav {
 	text-align: center;
 }
 
+#upload {
+
+	visibility: hidden;
+}
+
 #upload-options {
 	background-color: #fff;
 	border: 1px solid #ccc;
@@ -594,7 +599,6 @@ nav {
 	border:2px dashed #aaa; 
 	border-radius:10px; 
 	z-index:9999; 
-	display:none;
 }
 
 .resumable-dragover {

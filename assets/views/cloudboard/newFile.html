@@ -218,7 +218,7 @@
 					console.log(result.message);
 				}
 
-				timer = window.setInterval(checkHistory, 1000);
+				timer = window.setInterval(checkHistory, 5000);
 			});		
 
 			removeFile.fail(errorHandler);
@@ -257,7 +257,13 @@
 
 			var key = $(historyItem).attr('data-id');
 
-			r.resumeOne(key);
+			var exists = r.resumeOne(key);
+
+			//We need to select the file to be uploaded to continue uploading
+			if(exists == false) {
+
+				$('#upload').trigger('click');
+			}
 		});
 
 		$('#history').on('click', '.fa-pause', function() {
@@ -504,13 +510,11 @@
 		$('#progress-cancel-link').addClass('button-disabled');
 
 
-		var timer = setInterval(checkHistory, 1000);
-
-		// Show a place for dropping/selecting files
-		$('#resumable-drop').show();
+		//How frequently we should poll the server for file changes
+		var timer = setInterval(checkHistory, 5000);
 
 		r.assignDrop($('#resumable-drop')[0]);
-		r.assignBrowse($('.resumable-browse')[0]);
+		r.assignBrowse($('.resumable-browse')[0], $('#upload')[0]);
 
 		//Lets get started!
 		getHistory();
@@ -532,6 +536,8 @@
 		<div id="resumable-drop">
 			Drop files here to upload or <a class="resumable-browse">select from your computer</a>
 		</div>
+
+		<input name="upload" type="file" id="upload" multiple/>
 
 		<div id="resumable-progress">
 			<div id="progress-resume-link" class="button">
