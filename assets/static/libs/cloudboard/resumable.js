@@ -282,6 +282,7 @@
 			$.abort = function() {
 
 				$h.each($.chunks, function(c) {
+
 					if(c.status() === 'uploading') {
 						c.abort();
 					}
@@ -300,7 +301,6 @@
 					
 					if(c.status() == 'uploading') {
 						c.abort();
-						$.resumableObj.uploadNextChunk();
 					}
 				});
 
@@ -320,22 +320,29 @@
 
 				//Generate chunks and callback for events
 				for (var offset = 0; offset < maxOffset; offset++) {
-					$.chunks.push(new ResumableChunk($.resumableObj, $, offset, chunkEvent));
+
+					(function(offset){
+						window.setTimeout(function(){
+							$.chunks.push(new ResumableChunk($.resumableObj, $, offset, chunkEvent));
+						}, 0);
+					})(offset);
 				}
 			};
 
-			$.isUploading = function(){
+			$.isUploading = function() {
 
 				var uploading = false;
 
-				$h.each($.chunks, function(chunk){
+				$h.each($.chunks, function(chunk) {
+
 					if(chunk.status() == 'uploading') {
 						uploading = true;
-						return(false);
+
+						return false;
 					}
 				});
 
-				return(uploading);
+				return uploading;
 			};    
 
 			$.isComplete = function(){
@@ -348,23 +355,32 @@
 					
 					if(status === 'pending' || status === 'uploading') {
 						outstanding = true;
-						return(false);
+
+						return false;
 					}
 				});
 
-				return(!outstanding);
+				return !outstanding;
 			};
 
-			$.pause = function(pause){
+			$.pause = function() {
 
-				if(typeof(pause) === 'undefined'){
-					$._pause = ($._pause ? false : true);
-				}else{
-					$._pause = pause;
+				if($.isPaused() == true) {
+					return;
 				}
+
+				$.abort();
+
+				$._pause = true;
+			};
+
+			$.resume = function() {
+	
+				$._pause = false;	
 			};
 
 			$.isPaused = function() {
+
 				return $._pause;
 			};
 
@@ -387,7 +403,6 @@
 			$.offset = offset;
 			$.callback = callback;
 			$.lastProgressCallback = (new Date);
-			$.tested = false;
 			$.retries = 0;
 			$.xhr = null;
 
@@ -404,85 +419,74 @@
 			// test() makes a GET request without any data to see if the chunk has already been uploaded in a previous session
 			$.test = function() {
 
-				//We want to impose a limit on how quickly the checks are done
-				window.setTimeout(function() {
-		 
-					// Set up request and listen for event
-					$.xhr = new XMLHttpRequest();
+				// Set up request and listen for event
+				$.xhr = new XMLHttpRequest();
 
-					var testHandler = function(e) {
+				var testHandler = function(e) {
 
-						$.tested = true;
+					var status = $.status();
 
-						var status = $.status();
+					var response = $.message();
 
-						if(status === 'success') {
+					//Corrupt, failed or other issue like logged out 401
+					if(response == '' || response.success == false || status != 'success') {
 
-							var response = $.message();
+						$.callback('error', 'Error...cancel upload');
 
-							if(response.message == 'not_found') {
+						//Cancel all uploads
+						$.fileObj.cancel();
 
-								console.log("Save chunk!");
+					} else if(status === 'success') {
 						
-								$.send();
-							
-							//message = found
-							} else {
+						if(response.message == 'not_found') {
 
-								console.log("Skip chunk!");
+							console.log("Save chunk!");
+
+							$.send();
 						
-								$.resumableObj.uploadNextChunk();
-							}
-
-						//Corrupt or other issue like logged out 401
+						//message = found
 						} else {
 
-							console.log("Error...Cancel upload!");
-
-							$.callback('error', response.message);
-
-							//Cancel all uploads
-							$.fileObj.cancel();
+							console.log("Skip chunk!");
+					
+							$.resumableObj.uploadNextChunk();
 						}
-					};
+					}
+				};
 
-					$.xhr.addEventListener('load', testHandler, false);
-					$.xhr.addEventListener('error', testHandler, false);
+				$.xhr.addEventListener('load', testHandler, false);
+				$.xhr.addEventListener('error', testHandler, false);
 
-					// Set up the basic query data from Resumable
-					var query = {
-						// Add extra data to identify chunk
-						resumableChunkNumber: $.offset + 1,
-						resumableChunkSize: $.getOpt('chunkSize'),
-						resumableCurrentChunkSize: $.endByte - $.startByte,
-						resumableTotalSize: $.fileObjSize,
-						resumableType: $.fileObjType,
-						resumableFilename: $.fileObj.fileName,
-						resumableRelativePath: $.fileObj.relativePath,
-						resumableTotalChunks: $.fileObj.chunks.length,
-						resumableIdentifier: $.fileObj.identifier
-					};
+				// Set up the basic query data from Resumable
+				var query = {
+					// Add extra data to identify chunk
+					resumableChunkNumber: $.offset + 1,
+					resumableChunkSize: $.getOpt('chunkSize'),
+					resumableCurrentChunkSize: $.endByte - $.startByte,
+					resumableTotalSize: $.fileObjSize,
+					resumableType: $.fileObjType,
+					resumableFilename: $.fileObj.fileName,
+					resumableRelativePath: $.fileObj.relativePath,
+					resumableTotalChunks: $.fileObj.chunks.length,
+					resumableIdentifier: $.fileObj.identifier
+				};
 
-					// Add data from the query options
-					var data = new FormData();
+				// Add data from the query options
+				var data = new FormData();
 
-					$h.each(query, function(k,v) {
-						data.append(k,v);
-					});
+				$h.each(query, function(k,v) {
+					data.append(k,v);
+				});
 
-					$.xhr.open('POST', $.getOpt('checkTarget'));
-					$.xhr.timeout = $.getOpt('xhrTimeout');
-					$.xhr.send(data);
-				},0);
+				$.xhr.open('POST', $.getOpt('checkTarget'));
+				$.xhr.timeout = $.getOpt('xhrTimeout');
+				$.xhr.send(data);
 			};
 
-			// send() uploads the actual data in a POST call
+			// uploads the actual data in a POST call
 			$.send = function() {
 
-				if($.tested == false) {
-					$.test();
-					return;
-				}
+				console.log("Sending!");
 
 				// Set up request and listen for event
 				$.xhr = new XMLHttpRequest();
@@ -492,19 +496,21 @@
 
 					var status = $.status();
 
-					if(status == 'success') {
+					var response = $.message();
 
-						console.log("Successfully saved chunk!");
-						
-						$.resumableObj.uploadNextChunk();
+					//Corrupt, failed or other issue like logged out 401
+					if(response == '' || response.success == false || status != 'success') {
 
-					//Corrupt or other issue like logged out 401
-					} else {
-
-						console.log("Error...cancel upload!");
+						$.callback('error', 'Error...cancel upload');
 
 						//Cancel all uploads
 						$.fileObj.cancel();
+
+					} else if(status == 'success') {
+
+						console.log("Successfully saved chunk!");
+				
+						$.resumableObj.uploadNextChunk();
 					}
 				};
 
@@ -568,13 +574,6 @@
 
 					if($.xhr.status == 200) {
 
-						var message = $.message();
-
-						if( message == '' || message.success == false) {
-					
-							return('error');
-						}	
-
 						// HTTP 200, perfect
 						return('success');
 
@@ -595,39 +594,40 @@
 			return(this);
 		}
 
-		// QUEUE
+		// This controls the uploading after a ResumableFile has been bootstrapped with the server and r.upload is called
 		$.uploadNextChunk = function() {
 
-			var found = 0;
+			console.log("Looking for chunk to upload!");
+
+			var found = false;
+			var count = 0;
 
 			// Now, simply look for the next best thing to upload per file
 			$h.each($.files, function(file) {
 				
-				if(file.isPaused() === false) {
+				if(file.isPaused() === false && file.isUploading() === false) {
 				
 					$h.each(file.chunks, function(chunk) {
 					
 						if(chunk.status() == 'pending') {
 
 							//Send the chunk to the server side to be saved!
-							chunk.send();
+							chunk.test();
 
-							found++;
+							found = true;
 
-							return;
+							return false;
 						}
 					});
 				}
 
-				//We have reached our upper limit on active uploads
-				if(found == $.getOpt('simultaneousUploads')) {
-
-					return;
+				if(found == true) {
+					return false;
 				}
 			});
 
 			//We have file chunks uploading
-			if(found != 0) {
+			if(found == true) {
 				return;
 			}
 
@@ -640,7 +640,7 @@
 
 					outstanding = true;
 
-					return(false);
+					return false;
 				}
 			});
 
@@ -649,7 +649,7 @@
 				$.fire('complete');
 			}
 		
-			return(false);
+			return;
 		};
 
 
@@ -726,12 +726,15 @@
 		};
 
 		$.isUploading = function() {
+
 			var uploading = false;
 
 			$h.each($.files, function(file) {
-				if(file.isUploading()) {
+
+				if(file.isUploading() == true) {
 					uploading = true;
-					return(false);
+
+					return;
 				}
 			});
 
@@ -749,14 +752,37 @@
 			// Kick off the queue
 			$.fire('uploadStart');
 
-			$.uploadNextChunk();
+			//Start upload for more then one file
+			for (var num=1; num <= $.getOpt('simultaneousUploads'); num++) {
+				$.uploadNextChunk();
+			}
 		};
 
-		$.pause = function(){
+		$.resumeOne = function(key) {
+
+			var file = $.getFromUniqueIdentifier(key);
+
+			if(file != false) {
+				file.resume();	
+
+				$.upload();
+			}			
+		};
+
+		$.pauseOne = function(key) {
+
+			var file = $.getFromUniqueIdentifier(key);
+
+			if(file != false) {
+				file.pause();	
+			}	
+		};
+
+		$.pauseAll = function(){
 
 			// Resume all chunks currently being uploaded
 			$h.each($.files, function(file){
-				file.abort();
+				file.pause();
 			});
 
 			$.fire('pause');

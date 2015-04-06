@@ -208,12 +208,11 @@ function postSaveFile()
 
 			var file = result.file; 
 
-			console.log("HERERERERE");
-
 			//Returns: DONE, PARTLY_DONE, FAILED
 			resumable.post(self, function(status) {
 
 				console.log("STATSS" + status);
+				console.log(self.post.resumableChunkNumber);
 
 				if(status == 'done') {
 

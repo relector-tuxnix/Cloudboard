@@ -121,11 +121,11 @@ module.exports = resumable = function() {
 		}
 
 		var file = self.files.pop();
-
 		var chunkNumber = self.post.resumableChunkNumber;
 		var chunkSize = self.post.resumableChunkSize;
 		var totalSize = self.post.resumableTotalSize;
 		var identifier = self.post.resumableIdentifier;
+		var totalChunks = self.post.resumableTotalChunks;
 
 		var validate = validateRequest(chunkNumber, chunkSize, totalSize, identifier, file.length);
 
@@ -138,7 +138,6 @@ module.exports = resumable = function() {
 
 				// Do we have all the chunks?
 				var currentTestChunk = 1;
-				var numberOfChunks = Math.max(Math.floor(totalSize/(chunkSize*1.0)), 1);
 
 				var testChunkExists = function() {
 
@@ -146,14 +145,14 @@ module.exports = resumable = function() {
 					
 						if(exists) {
 
-							currentTestChunk++;
-						
-							if(currentTestChunk > numberOfChunks) {
+							if(currentTestChunk == totalChunks) {
 
 								callback('done');
 
 							} else {
 
+								currentTestChunk++;
+						
 								// Recursion
 								testChunkExists();
 							}
@@ -163,7 +162,7 @@ module.exports = resumable = function() {
 							callback('partly_done');
 						}
 					});
-				}
+				};
 
 				testChunkExists();
 			});
