@@ -46,6 +46,8 @@ Start Cloudboard
 
 * [GM](https://github.com/aheckmann/gm)
 
+* [Graphics Magick](http://www.graphicsmagick.org/)
+
 * [Async](https://github.com/caolan/async) 
 
 ### Linux Installation
@@ -71,6 +73,8 @@ Install the following node modules
     $> npm install gm --save
     
     $> npm install async --save
+    
+    $> sudo apt-get install graphicsmagick
 
 Enter the Elastic-Core project
 
