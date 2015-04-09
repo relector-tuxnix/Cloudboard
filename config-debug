@@ -1,6 +1,8 @@
 name                       	: Cloudboard (DEBUG)
 version                    	: 1.00
 secret                    	: cloudboard-1.00
+default-ip       		: 127.0.0.1
+default-port     		: 8000
 etag-version               	:
 directory-contents		: /assets/
 directory-controllers		: /controllers/
