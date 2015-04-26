@@ -78,7 +78,7 @@ $.viewFiles = {
 
 $.login = {
 	uri: '/login',
-	label: 'Cloudboard',
+	label: 'Login',
 	view: 'cloudboard/login',
 	above: [],
 	below: []

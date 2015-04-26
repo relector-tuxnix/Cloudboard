@@ -7,6 +7,7 @@ etag-version               	:
 directory-contents		: /assets/
 directory-controllers		: /controllers/
 directory-views            	: /assets/views/
+directory-locale		: /assets/locale/
 directory-temp                  : /tmp/
 directory-resources             : /assets/resources/
 directory-public             	: /assets/static/

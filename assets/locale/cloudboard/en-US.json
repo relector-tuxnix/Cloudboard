@@ -1,5 +1,6 @@
 {
-	"hi" : "Hi",
-	"howdy" : "Howdy",
-	"hello" : "Hello {{name}}"
+	"site-title"  	    : "Cloudboard",
+	"site-banner" 	    : "Cloudboard.",
+	"site-footer" 	    : "&copy; 2015 Cloudboard.",
+	"login-page-header" : "Login"
 }
