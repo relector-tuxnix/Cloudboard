@@ -17,7 +17,7 @@ Extract Cloudboard
     
 Enter the Cloudboard project
 
-    $> cd ./Cloudboard
+    $> cd ./cloudboard-2015-05
 
 Get ElasticSearch from the offical site
 
