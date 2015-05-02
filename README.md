@@ -3,17 +3,17 @@ A private cloud that contains all your files using total.js and elastic-search.
 
 ## Releases
 
-* [Version 2015.04](https://github.com/neonnds/Cloudboard/cloudboard-2015-04.tar.gz)
+* [Version 2015.05](https://github.com/neonnds/Cloudboard/raw/master/cloudboard-2015-05.tar.gz)
 
 ## Getting Started
 
 Get Cloudboard
 
-    $> wget https://github.com/neonnds/Cloudboard/cloudboard-2015-04.tar.gz
+    $> wget https://github.com/neonnds/Cloudboard/raw/master/cloudboard-2015-05.tar.gz
     
 Extract Cloudboard
 
-    $> tar -zxf cloudboard-2015-04.tar.gz
+    $> tar -zxf cloudboard-2015-05.tar.gz
     
 Enter the Cloudboard project
 
