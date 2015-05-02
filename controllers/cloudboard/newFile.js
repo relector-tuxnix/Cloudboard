@@ -2,7 +2,7 @@ var common = require('../../cloudboard/common.js');
 var pages = require('../../cloudboard/pages.js');
 
 exports.install = function(framework) {
-	framework.route(pages.newFile.uri, getAddPage, ['authorize']);
+	framework.route(pages.newFile.uri, getAddPage, pages.newFile.options);
 };
 
 // GET Add Page
@@ -13,9 +13,8 @@ function getAddPage()
 	common.model = {};
 	common.model.pages = pages;
 	common.model.page = pages.newFile;
-	common.model.body = common.make(self, pages.newFile.view);
 	
-	var page = common.make(self, pages.default.view);
+	var page = common.make(self, pages.newFile.views);
 
 	self.html(page);
 }

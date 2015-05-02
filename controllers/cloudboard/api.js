@@ -4,17 +4,15 @@ var pages = require('../../cloudboard/pages.js');
 var resumable = require('../../cloudboard/resumable-node.js')();
 
 exports.install = function(framework) {
-	framework.route(pages.apiGetFiles.uri, getFiles, ['post', 'authorize']);
-	framework.route(pages.apiGetFile.uri, getFile, ['post', 'authorize']);
-	framework.route(pages.apiBootstrapFile.uri, bootstrapFile, ['+xhr', 'upload', 'post', 'authorize']);
-        framework.route(pages.apiCheckFile.uri, checkFile, ['+xhr', 'upload', 'post', 'authorize']);
-        framework.route(pages.apiSaveFile.uri, postSaveFile, { flags: ['+xhr', 'upload', 'post', 'authorize'], length: 819200 });
-        framework.route(pages.apiRemoveFile.uri, postRemoveFile, ['post', 'authorize']);
-        
-        framework.route(pages.apiSaveTag.uri, postSaveTag, ['post', 'authorize']);
-        framework.route(pages.apiRemoveTag.uri, postRemoveTag, ['post', 'authorize']);
-
-	framework.route(pages.returnFile.uri, returnFile);
+	framework.route(pages.apiGetFiles.uri, getFiles, pages.apiGetFiles.options);
+	framework.route(pages.apiGetFile.uri, getFile, pages.apiGetFile.options);
+	framework.route(pages.apiBootstrapFile.uri, bootstrapFile, pages.apiBootstrapFile.options);
+        framework.route(pages.apiCheckFile.uri, checkFile, pages.apiCheckFile.options);
+        framework.route(pages.apiSaveFile.uri, postSaveFile, pages.apiSaveFile.options);
+        framework.route(pages.apiRemoveFile.uri, postRemoveFile, pages.apiRemoveFile.options);
+        framework.route(pages.apiSaveTag.uri, postSaveTag, pages.apiSaveTag.options);
+        framework.route(pages.apiRemoveTag.uri, postRemoveTag, pages.apiRemoveTag.options);
+	framework.route(pages.returnFile.uri, returnFile, pages.returnFile.options);
 };
 
 function getFiles()
