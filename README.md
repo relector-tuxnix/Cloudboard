@@ -26,6 +26,10 @@ Get ElasticSearch from the offical site
 Extract ElasticSearch
 
     $> tar -zxf elasticsearch-1.5.0.tar.gz
+
+Install GraphicsMagick
+
+    $> sudo apt-get install graphicsmagick
     
 Start Elastic Search
 
