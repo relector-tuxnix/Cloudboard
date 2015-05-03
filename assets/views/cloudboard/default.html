@@ -46,7 +46,10 @@
 				{{else}}
 	
 					<li><a href="/login"><i class="fa fa-book"></i> Login</a></li>
-					<li><a href="/register"><i class="fa fa-book"></i> Register</a></li>
+
+					{{#if pages.register.active}}
+                                                <li><a href="/register"><i class="fa fa-book"></i> Register</a></li>
+                                        {{/if}}
 
 				{{/if}}
 			</ul>
