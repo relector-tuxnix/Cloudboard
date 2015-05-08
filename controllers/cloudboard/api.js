@@ -73,6 +73,7 @@ function returnFile(action, type, key)
 			//Set the download name to the orignal filename rather then the file key
 			var headers = [];
 			headers['Content-Disposition'] = 'attachment;filename="' + result.file.name + '"';
+			headers['Access-Control-Allow-Origin'] = '*';  
 
 			if(result.file.type.indexOf('image/') == -1) {
 
@@ -81,8 +82,6 @@ function returnFile(action, type, key)
 					fs.readFile(self.config['files-original-dir'] + result.file.key, function (err, data) {
 
 						if(err) {
-
-							console.log(err);
 
 							self.view404();
 						
