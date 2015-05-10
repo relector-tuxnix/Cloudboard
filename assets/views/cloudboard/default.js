@@ -32,13 +32,13 @@ $(document).ready(function() {
 
 			$(fileItem).removeAttr('id');
 
-			$(fileItem).find('.options a:last').attr('href', '{{pages.returnFile.base}}' + '/view/original/' + file.key);
+			$(fileItem).find('.options a:last').attr('href', '{{pages.returnFile.original}}' + file.key);
 
 			$(fileItem).find('.remove a:first').attr('href', '{{pages.apiRemoveFile.uri}}' + file.key);
 
 			$(fileItem).find('.tag a:first').attr('href', '/tag/' + file.key);
 
-			$(fileItem).find('img').attr('src', '{{pages.returnFile.base}}' + '/view/small-thumb/' + file.key);
+			$(fileItem).find('img').attr('src', '{{pages.returnFile.smallThumb}}' + file.key);
 
 			$(fileItem).find('.filename').html(file.name);
 
@@ -387,9 +387,9 @@ $(document).ready(function() {
 
 				var key = $(selected).attr('data-id');
 
-				$(detailsItem).find('.options a:first').attr('href', "/file/view/original/" + key);
+				$(detailsItem).find('.options a:first').attr('href', "{{pages.returnFile.original}}" + key);
 
-				$(detailsItem).children('.image-container').css("background-image","url('/file/view/medium-thumb/" + key + "')");
+				$(detailsItem).children('.image-container').css("background-image","url('{{pages.returnFile.mediumThumb}}" + key + "')");
 
 				$(endFile).after(detailsItem);
 

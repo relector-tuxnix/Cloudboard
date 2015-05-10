@@ -14,8 +14,11 @@ $.apiGetFile = {
 }
 
 $.returnFile = {
-	uri: '/file/{action}/{type}/{key}/',
+	uri: '/file/{type}/{key}/',
 	base: '/file',
+	smallThumb: '/file/small-thumb/',
+	mediumThumb: '/file/medium-thumb/',
+	original: '/file/original/',
 	options: ['get'],
 	label: 'Return File',
 }
@@ -130,7 +133,7 @@ $.register = {
 	uri: '/register',
 	options: ['unauthorize'],
 	postOptions: ['unauthorize', 'post'],
-	active: true,
+	active: false,
 	label: 'Register',
 	views: [
 		{'body' : 'cloudboard/register.html'},
