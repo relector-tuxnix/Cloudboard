@@ -73,30 +73,13 @@ function returnFile(action, type, key)
 			//Set the download name to the orignal filename rather then the file key
 			var headers = [];
 			headers['Content-Disposition'] = 'attachment;filename="' + result.file.name + '"';
-			headers['Access-Control-Allow-Origin'] = '*';  
+			headers['Access-Control-Allow-Origin'] = '*';
 
-			if(result.file.type.indexOf('image/') == -1) {
+			if(action == "stream") {
 
-				if(type == "original") {
-			
-					fs.readFile(self.config['files-original-dir'] + result.file.key, function (err, data) {
+				self.file(self.config['files-' + type + '-dir'].replace(".", "~") + result.file.key);
 
-						if(err) {
-
-							self.view404();
-						
-						} else {
-						
-							self.content(data, 'application/octet-stream', headers);
-						}
-					});
-
-				} else {
-					
-					self.file('~/assets/static/images/cloudboard/file-generic-icon-' + type + '.png');
-				}
-
-			} else {
+			} else if(action == "download") {
 
 				fs.readFile(self.config['files-' + type + '-dir'] + result.file.key, function (err, data) {
 				
@@ -106,14 +89,24 @@ function returnFile(action, type, key)
 				
 					} else {
 					
-						if(action == "download") {
+						self.content(data, 'application/octet-stream', headers);
+					}
+				});
 
-							self.content(data, 'application/octet-stream', headers);
+			//View a file and let the browser handle it (images will be rendered for example rather then downloaded)
+			// If the requested file cannot be found then provide a default file thumb
+			// Requested type should be: small-thumb, medium-thumb, original
+			} else {
 
-						} else {
+				fs.readFile(self.config['files-' + type + '-dir'] + result.file.key, function (err, data) {
+				
+					if(err) {
 
-							self.content(data, result.file.type);
-						}
+						self.file('~/assets/static/images/cloudboard/file-generic-icon-' + type + '.png');
+				
+					} else {
+					
+						self.content(data, result.file.type);
 					}
 				});
 			}
