@@ -391,7 +391,7 @@ $(document).ready(function() {
 
 		if(file.active == true) {
 		
-			$(item).find('a.filename').attr('href', "{{pages.returnFile.base}}/view/original/" + file.key);
+			$(item).find('a.filename').attr('href', "{{pages.returnFile.original}}" + file.key);
 			$(item).find('a.filename').text(file.name);
 	
 			$(item).find('span.filename').css('display', 'none');
