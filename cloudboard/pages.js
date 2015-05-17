@@ -59,15 +59,6 @@ $.apiRemoveTag = {
 	label: 'Remove Tag.',
 }
 
-$.default = {
-	label: 'Cloudboard',
-	options: [],
-	views: [
-		{'defaultjs' : 'cloudboard/default.js'},
-		{'default' : 'cloudboard/default.html'}
-	],
-};
-
 $.error = {
 	uri: '/error',
 	options: [],
