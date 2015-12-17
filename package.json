@@ -1,0 +1,27 @@
+{
+  "name": "Cloudboard",
+  "version": "1.0.0",
+  "description": "A private cloud that contains all your files using total.js and elastic-search.",
+  "main": "index.js",
+  "dependencies": {
+    "bcrypt-nodejs": "^0.0.3",
+    "cuid": "^1.2.5",
+    "gm": "^1.17.0",
+    "async": "^0.9.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/neonnds/Cloudboard.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/neonnds/Cloudboard/issues"
+  },
+  "homepage": "https://github.com/neonnds/Cloudboard#readme"
+}
