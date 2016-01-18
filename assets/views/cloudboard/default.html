@@ -18,13 +18,13 @@
 
 		<script type="text/javascript" src="/libs/cloudboard/resumable.js" charset="utf-8"></script>
 
-		{{#is pages.home.uri "===" page.uri}}
+		{{#compare pages.home.uri "===" page.uri}}
 			{{#if user}}
 				<script type="text/javascript">
 					{{{defaultjs}}}
 				</script>	
 			{{/if}}
-		{{/is}}
+		{{/compare}}
 
 	</head>
 
@@ -45,7 +45,7 @@
 
 				{{else}}
 	
-					<li><a href="/login"><i class="fa fa-book"></i> Login</a></li>
+					<li><a href="{{pages.getLogin.uri}}"><i class="fa fa-book"></i> Login</a></li>
 
 					{{#if pages.register.active}}
                                                 <li><a href="/register"><i class="fa fa-book"></i> Register</a></li>
@@ -56,7 +56,7 @@
 		</nav>
 
 
-		{{#is pages.home.uri "===" page.uri}}
+		{{#compare pages.home.uri "===" page.uri}}
 
 			{{#if user}}
 
@@ -147,7 +147,7 @@
 
 		{{else}}
 			
-			{{#is pages.search.uri "===" page.uri}}
+			{{#compare pages.search.uri "===" page.uri}}
 
 				{{results}}		
 				
@@ -155,9 +155,9 @@
 
 				{{{body}}}
 
-			{{/is}}
-		{{/is}}
+			{{/compare}}
 
+		{{/compare}}
 	
 	</body>
 

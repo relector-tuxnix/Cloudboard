@@ -1,22 +1,11 @@
+var $ = exports;
+
 var fs = require('fs');
 var common = require('../../cloudboard/common.js');
-var pages = require('../../cloudboard/pages.js');
 var resumable = require('../../cloudboard/resumable-node.js')();
 
-exports.install = function(framework) {
-	framework.route(pages.apiGetFiles.uri, getFiles, pages.apiGetFiles.options);
-	framework.route(pages.apiGetFile.uri, getFile, pages.apiGetFile.options);
-	framework.route(pages.apiBootstrapFile.uri, bootstrapFile, pages.apiBootstrapFile.options);
-        framework.route(pages.apiCheckFile.uri, checkFile, pages.apiCheckFile.options);
-        framework.route(pages.apiSaveFile.uri, postSaveFile, pages.apiSaveFile.options);
-        framework.route(pages.apiRemoveFile.uri, postRemoveFile, pages.apiRemoveFile.options);
-        framework.route(pages.apiSaveTag.uri, postSaveTag, pages.apiSaveTag.options);
-        framework.route(pages.apiRemoveTag.uri, postRemoveTag, pages.apiRemoveTag.options);
-	framework.route(pages.returnFile.uri, returnFile, pages.returnFile.options);
-};
+$.apiGetFiles = function() {
 
-function getFiles()
-{
 	var self = this;
 
 	if(self.post.active == null) {
@@ -42,10 +31,10 @@ function getFiles()
 			self.json(result);
 		});
 	}
-}
+};
 
-function getFile()
-{
+$.apiGetFile = function() {
+
 	var self = this;
 
 	var key = self.post.id;
@@ -54,11 +43,11 @@ function getFile()
 
 		self.json(result);
 	});
-}
+};
 
 //Need to do serious security checks here!
-function returnFile(type, key)
-{
+$.apiReturnFile = function(type, key) {
+
 	var self = this;
 
 	//Check user has that file in db and if they do return it with the mime type set...otherwise return 404
@@ -77,23 +66,25 @@ function returnFile(type, key)
 
 			var filename = self.config['files-' + type + '-dir'] + result.file.key;
 
-			fs.exists(filename, function (exists) {
+			var fullPath = F.path.root(filename);
+
+			fs.exists(fullPath, function (exists) {
 			
 				if(exists == false) {
 
-					self.file('~/assets/static/images/cloudboard/file-generic-icon-' + type + '.png');
+					self.file('/images/cloudboard/file-generic-icon-' + type + '.png');
 			
 				} else {
 
-					self.file(filename.replace(".", "~"), result.file.name, headers);
+					self.file('~' + fullPath, result.file.name, headers);
 				}
 			});
 		}
 	});
-}
+};
 
-function bootstrapFile()
-{
+$.apiBootstrapFile = function() {
+
 	var self = this;
 
 	common.EBStoreFile(self, function(file) {
@@ -107,10 +98,10 @@ function bootstrapFile()
 			self.json({success: true, message: 'Found or Generated file.', file: file});
 		}
 	});
-}
+};
 
-function checkFile()
-{
+$.apiCheckFile = function() {
+
 	var self = this;
 
 	var key = self.post.resumableIdentifier;
@@ -154,10 +145,10 @@ function checkFile()
 		});
 
 	});
-}
+};
 
-function postSaveFile()
-{
+$.apiSaveFile = function() {
+
 	var self = this;
 
 	//Do not delete temporary files until the end of the request
@@ -242,34 +233,34 @@ function postSaveFile()
 			});
 		}
 	});
-}
+};
 
-function postRemoveFile()
-{
+$.apiRemoveFile = function() {
+
 	var self = this;
 
 	common.EBRemoveFile(self, function(result) {
 
 		self.json(result);	
 	});
-}
+};
 
-function postSaveTag()
-{
+$.apiSaveTag = function() {
+
 	var self = this;
 
 	common.EBSaveTag(self, function(result) {
 
 		self.json(result);
 	});
-}
+};
 
-function postRemoveTag()
-{
+$.apiRemoveTag = function() {
+
 	var self = this;
 
 	common.EBRemoveTag(self, function(result) {
 
 		self.json(result);
 	});
-}
+};

@@ -1,4 +1,4 @@
-var framework = require('total.js');
+var F = require('total.js');
 var fs = require('fs');
 var hb = require('handlebars');
 var hb = require('handlebars');
@@ -7,15 +7,19 @@ var cuid = require('cuid');
 var gm = require('gm');
 var async = require('async');
 var db = require('./database.js');
+var pages = require('./pages.js');
 
 var $ = module.exports = require('../elastic-core/common.js');
 
 var defaultLimit = 50;
-var fileStoreLocation = framework.config['files-dir'];
-var tmpStoreLocation = framework.config['files-tmp-dir'];
-var originalLocation = framework.config['files-original-dir'];
-var mediumThumbLocation = framework.config['files-medium-thumb-dir'];
-var smallThumbLocation = framework.config['files-small-thumb-dir'];
+var fileStoreLocation = F.config['files-dir'];
+var tmpStoreLocation = F.config['files-tmp-dir'];
+var originalLocation = F.config['files-original-dir'];
+var mediumThumbLocation = F.config['files-medium-thumb-dir'];
+var smallThumbLocation = F.config['files-small-thumb-dir'];
+
+$.registerPages(pages);
+
 
 $.EBStoreFile = function(self, callback) {
 
@@ -43,28 +47,16 @@ $.EBStoreFile = function(self, callback) {
 		body.meta = JSON.stringify({width: 0, height: 0});
 		body.created = new Date();
 
-		db.client.index({
-			index: 'files',
-			type: 'file',
-			refresh: true,
-			body: body
-		}, function (err, response) {
+		$.EBIndex(body.key, body, 'files', 'file', function(response) {
 
-			if(err == null) {
-			
-				if(response.created == true) {
+			if(response.created == true) {
 
-					callback(body);
+				callback(body);
 
-				} else {
-
-					callback(null);
-				}	
-				
 			} else {
 
 				callback(null);
-			}
+			}	
 		});
 	};
 
@@ -133,24 +125,12 @@ $.EBStoreFile = function(self, callback) {
 
 $.EBUpdateFile = function(file, callback) {
 
-	db.client.index({
-		index: 'files',
-		type: 'file',
-		refresh: true,
-		body: file
-	}, function (err, response) {
+	$.EBIndex(file.key, file, 'files', 'file', function(response) {
 
-		if(err == null) {
-			
-			//If we want to update the existing object not create it!
-			if(response.created == false) {		
+		//If we want to update the existing object not create it!
+		if(response.created == false) {		
 
-				callback(file);
-
-			} else {
-
-				callback(null);
-			}
+			callback(file);
 
 		} else {
 
@@ -360,13 +340,13 @@ $.EBGetFiles = function(self, callback) {
 $.EBGetFile = function(self, key, callback) {
 
 	var body = { 
-			"query": {
-				"bool": {
-					"must": [
-						{ "match": { "key" : key }}
-					]
-				}
+		"query": {
+			"bool": {
+				"must": [
+					{ "match": { "key" : key }}
+				]
 			}
+		}
 	};
 
 	//Only look for public files

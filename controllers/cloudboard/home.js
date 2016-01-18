@@ -1,28 +1,22 @@
-var common = require('../../cloudboard/common.js')
-var pages = require('../../cloudboard/pages.js');
+var $ = exports;
 
-exports.install = function(framework) {
-	framework.route(pages.home.uri, getHomePage, pages.home.options);
-};
+var common = require('../../cloudboard/common.js')
 
 // GET Home Page
-function getHomePage()
-{
+$.home = function() {
+
 	var self = this;
 
 	if(self.user != null) {
 
 		common.model = {};
-		common.model.pages = pages;
-		common.model.page = pages.home;
 
-		var page = common.make(self, pages.home.views);
+		var page = common.make(self, common.pages.home);
 
 		self.html(page);
 
 	} else {
 
-		self.redirect('/login');
-
+		self.redirect(common.pages.getLogin.uri);
 	}
-}
+};

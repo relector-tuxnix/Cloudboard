@@ -1,67 +1,77 @@
-//Override elastic-core pages
-var $ = module.exports = require('../elastic-core/pages.js'); 
+var $ = exports;
 
 $.apiGetFiles = {
 	uri: '/api/get-files',
-	options: ['post', 'authorize'],
+	controller: 'cloudboard/api.js',
+	flags: ['post', 'authorize'],
 	label: 'Get Files',
 }
 
 $.apiGetFile = {
 	uri: '/api/get-file',
-	options: ['post', 'authorize'],
+	controller: 'cloudboard/api.js',
+	flags: ['post', 'authorize'],
 	label: 'Get File',
 }
 
-$.returnFile = {
+$.apiReturnFile = {
 	uri: '/file/{type}/{key}/',
+	controller: 'cloudboard/api.js',
 	base: '/file',
 	smallThumb: '/file/small-thumb/',
 	mediumThumb: '/file/medium-thumb/',
 	original: '/file/original/',
-	options: ['get'],
+	flags: ['get'],
 	label: 'Return File',
 }
 	
 $.apiBootstrapFile = {
 	uri: '/api/bootstrap-file',
-	options: ['+xhr', 'upload', 'post', 'authorize'],
+	controller: 'cloudboard/api.js',
+	flags: ['+xhr', 'upload', 'post', 'authorize'],
 	label: 'Boostrap File',
 }
 
 $.apiCheckFile = {
 	uri: '/api/check-file',
-	options: ['+xhr', 'upload', 'post', 'authorize'],
+	controller: 'cloudboard/api.js',
+	flags: ['+xhr', 'upload', 'post', 'authorize'],
 	label: 'Check File',
 }
 
 $.apiSaveFile = {
 	uri: '/api/save-file',
-	options: { flags : ['+xhr', 'upload', 'post', 'authorize'], length: 819200 },
+	controller: 'cloudboard/api.js',
+	flags: { flags : ['+xhr', 'upload', 'post', 'authorize'], length: 819200 },
 	label: 'Save File',
 }
 
 $.apiRemoveFile = {
 	uri: '/api/remove-file',
-	options: ['post', 'authorize'],
+	controller: 'cloudboard/api.js',
+	flags: ['post', 'authorize'],
 	label: 'Remove File.',
 }
 
 $.apiSaveTag = {
 	uri: '/api/save-tag',
-	options: ['post', 'authorize'],
+	controller: 'cloudboard/api.js',
+	flags: ['post', 'authorize'],
 	label: 'Save Tag.',
 }
 
 $.apiRemoveTag = {
 	uri: '/api/remove-tag',
-	options: ['post', 'authorize'],
+	controller: 'cloudboard/api.js',
+	flags: ['post', 'authorize'],
 	label: 'Remove Tag.',
 }
 
 $.error = {
 	uri: '/error',
-	options: [],
+	controller: 'elastic-core/default.js',
+	priority: 1,
+	flags: [],
 	label: 'Error Occured',
 	views: [
 		{'body' : 'cloudboard/error.html'},
@@ -74,7 +84,8 @@ $.error = {
 
 $.newFile = {
 	uri: '/new-file',
-	options: ['authorize'],
+	controller: 'cloudboard/newFile.js',
+	flags: ['authorize'],
 	label: 'New File',
 	views: [
 		{'newFilejs' : 'cloudboard/newFile.js'},
@@ -86,10 +97,11 @@ $.newFile = {
 	below: []
 }
 
-$.login = {
+$.getLogin = {
 	uri: '/login',
-	options: ['unauthorize', 'get'],
-	postOptions: ['unauthorize', 'post'],
+	controller: 'elastic-core/login.js',
+	priority: 1,
+	flags: ['unauthorize', 'get'],
 	label: 'Login',
 	views: [
 		{'body' : 'cloudboard/login.html'},
@@ -100,9 +112,21 @@ $.login = {
 	below: []
 };
 
+$.postLogin = {
+	uri: '/login',
+	controller: 'elastic-core/login.js',
+	priority: 1,
+	flags: ['unauthorize', 'post'],
+	label: 'Login',
+	views: [],
+	above: [],
+	below: []
+};
+	
 $.logout = {
 	uri: '/logout',
-	options: [],
+	controller: 'elastic-core/login.js',
+	flags: ['authorize'],
 	label: 'Logout',
 	above: [],
 	below: []
@@ -110,7 +134,9 @@ $.logout = {
 
 $.home = {
 	uri: '/',
-	options: ['get'],
+	controller: 'cloudboard/home.js',
+	priority: 1,
+	flags: ['get'],
 	label: 'Cloudboard',
 	views: [
 		{'defaultjs' : 'cloudboard/default.js'},
@@ -120,11 +146,10 @@ $.home = {
 	below: []
 };
 
-$.register = {
+$.getRegister = {
 	uri: '/register',
-	options: ['unauthorize'],
-	postOptions: ['unauthorize', 'post'],
-	active: false,
+	controller: 'elastic-core/register.js',
+	flags: ['unauthorize'],
 	label: 'Register',
 	views: [
 		{'body' : 'cloudboard/register.html'},
@@ -137,8 +162,9 @@ $.register = {
 
 $.search = {
 	uri: '/search/{query}',
+	controller: 'cloudboard/api.js',
 	base: '/search',
-	options: ['get'],
+	flags: ['get'],
 	label: 'Search',
 	views: [
 		{'defaultjs' : 'cloudboard/default.js'},
@@ -153,11 +179,11 @@ $.search = {
 //RELATIONSHIPS
 
 $.home.below = [
-	$.register,
+	$.getRegister,
 	$.search,
 	$.newFile
 ];
 
-$.register.above = [$.home];
+$.getRegister.above = [$.home];
 $.search.above = [$.home];
 $.newFile.above = [$.home];

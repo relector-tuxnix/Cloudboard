@@ -1,23 +1,18 @@
-var common = require('../../cloudboard/common.js');
-var pages = require('../../cloudboard/pages.js');
+var $ = exports;
 
-exports.install = function(framework) {
-	framework.route(pages.search.uri, getSearchPage, pages.search.options);
-};
+var common = require('../../cloudboard/common.js');
 
 // GET Search Page
-function getSearchPage(query)
-{
+$.getSearchPage = function(query) {
+
 	var self = this;
 
 	common.model = {};
 
 	common.model.query = query;
-	common.model.pages = pages;
-	common.model.page = pages.search;
 	common.model.results = [];
 
-	var page = common.make(self, pages.home.views);
+	var page = common.make(self, common.pages.home);
 
 	self.html(page);
-}
+};

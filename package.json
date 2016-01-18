@@ -4,10 +4,10 @@
   "description": "A private cloud that contains all your files using total.js and elastic-search.",
   "main": "index.js",
   "dependencies": {
+    "async": "^0.9.0",
     "bcrypt-nodejs": "^0.0.3",
-    "cuid": "^1.2.5",
-    "gm": "^1.17.0",
-    "async": "^0.9.0"
+    "cuid": "^1.3.8",
+    "gm": "^1.17.0"
   },
   "devDependencies": {},
   "scripts": {
