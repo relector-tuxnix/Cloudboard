@@ -2,10 +2,10 @@
 
 	"use strict";
 
-	var Resumable = function(opts) {
+	var Resumable = function(bootstrapTarget, checkTarget, saveTarget) {
 	
 		if((this instanceof Resumable) == false) {
-			return new Resumable(opts);
+			return new Resumable(bootstrapTarget, checkTarget, saveTarget);
 		}
 
 		this.version = 1.0;
@@ -34,40 +34,17 @@
 
 		$.defaults = {
 			chunkSize: 1*1024*1024,
-			simultaneousUploads: 3,
+			simultaneousUploads: 1,
 			fileParameterName: 'file',
 			query: {},
-			bootstrapTarget: '',
-			checkTarget: '',
-			saveTarget: '/',
-			xhrTimeout: 0
+			xhrTimeout: 0,
+			bootstrapTarget: bootstrapTarget,
+			checkTarget: checkTarget,
+			saveTarget: saveTarget
 		};
 
-		$.opts = opts || {};
-
 		$.getOpt = function(o) {
-			var $opt = this;
-			// Get multiple option if passed an array
-			if(o instanceof Array) {
-				var options = {};
-				$h.each(o, function(option){
-						options[option] = $opt.getOpt(option);
-						});
-				return options;
-			}
-			// Otherwise, just return a simple option
-			if ($opt instanceof ResumableChunk) {
-				if (typeof $opt.opts[o] !== 'undefined') { return $opt.opts[o]; }
-				else { $opt = $opt.fileObj; }
-			}
-			if ($opt instanceof ResumableFile) {
-				if (typeof $opt.opts[o] !== 'undefined') { return $opt.opts[o]; }
-				else { $opt = $opt.resumableObj; }
-			}
-			if ($opt instanceof Resumable) {
-				if (typeof $opt.opts[o] !== 'undefined') { return $opt.opts[o]; }
-				else { return $opt.defaults[o]; }
-			}
+			return $.defaults[o];
 		};
     
 		// EVENTS
@@ -108,6 +85,7 @@
 	   		},
 
 			each: function(o, callback) {
+
 				if(typeof(o.length) !== 'undefined') {
 
 					for (var i = 0; i < o.length; i++) {
@@ -131,7 +109,7 @@
 			}
 		};
 
-		// INTERNAL METHODS (both handy and responsible for the heavy load)
+		/* INTERNAL METHODS (both handy and responsible for the heavy load) */
 		var appendFilesFromFileList = function(fileList, event) {
 
 			$h.each(fileList, function(file) {
@@ -139,26 +117,44 @@
 				var f = new ResumableFile($, file);
 				f.container = event.srcElement;
 
-				//Generate a file in database to reflect this files existence
+				/* Set up the basic query data from Resumable */
+				var query = {
+					resumableTotalSize: f.file.size,
+					resumableType: f.file.type,
+					resumableFilename: f.file.name,
+					tags: $.tags,
+					allowPublic: $.allowPublic
+				};
 
-				// Set up request and listen for event
-				var xhr = new XMLHttpRequest();
+				/* Add data from the query options */
+				var data = new FormData();
 
-				// Done (either done, failed)
-				var doneHandler = function(e) {
+				$h.each(query, function(k,v) {
+					data.append(k,v);
+				});
 
-					// release listeners
-					xhr.removeEventListener('load', doneHandler, false);
-					xhr.removeEventListener('error', doneHandler, false);
+				/* Generate a file in database to reflect this files existence */
+				$.ajax({
+					xhr: function () {
+						var xhr = $.ajaxSettings.xhr();
+						xhr.upload.onprogress = function (e) {
+							console.log(Math.floor(e.loaded / e.total * 100) + '%');
+						};
+						return xhr;
+					},
+					contentType: false,
+					processData: false,
+					type: 'POST',
+					data: data,
+					url: $.getOpt("bootstrapTarget"),
+					success: function(response) {
 
-					if(xhr.status == 200) {
+						console.log("Successfully bootstraped file!");
 
-						var response = JSON.parse(xhr.responseText);
+						/* Let the file be uploaded or continued because on the server side the file is 'Pending', 'Uploading' or 'Failed' */
+						if(response.file._success != "Processing") {
 
-						//Let the file be uploaded or continued because on the server side the file is 'Pending', 'Uploading' or 'Failed'
-						if(response.success == true && response.file.success != "Processing") {
-
-							var key = response.file.key;
+							var key = response.file._key;
 							var existing = $.getFromUniqueIdentifier(key);
 
 							f.identifier = key;
@@ -171,7 +167,7 @@
 
 							} else {
 
-								//If the file is complete and a new upload attempt is made remove the existing and recreate the upload
+								/* If the file is complete and a new upload attempt is made remove the existing and recreate the upload */
 								if(existing.isComplete() == true) {
 
 									existing.cancel();											
@@ -186,69 +182,47 @@
 								}
 							}
 
-						//The file is 'Failed' or 'Processing'
+						/* The file is 'Failed' or 'Processing' */
 						} else {
 										
 							$.fire('alreadyQueued');
 						}
+					},
+					error: function() {
 
-					} else {
-			
-						// HTTP 415/500/501, permanent error
-						xhr.abort();
+						console.log("Error occured testing upload... cancelling upload!");
 
-						console.log(status);
-						console.log("Unknown Error");
-					}
-				};
+						$.callback('error', 'Error...cancel upload');
 
-				xhr.addEventListener('load', doneHandler, false);
-				xhr.addEventListener('error', doneHandler, false);
-
-				// Set up the basic query data from Resumable
-				var query = {
-					resumableTotalSize: f.file.size,
-					resumableType: f.file.type,
-					resumableFilename: f.file.name,
-					tags: JSON.stringify($.tags),
-					allowPublic: $.allowPublic
-				};
-
-				// Add data from the query options
-				var data = new FormData();
-
-				$h.each(query, function(k,v) {
-					data.append(k,v);
+						/* Cancel all uploads */
+						$.fileObj.cancel();
+					},
+					complete: function() {}
 				});
-
-				xhr.open('POST', $.getOpt('bootstrapTarget'));
-				xhr.timeout = $.getOpt('xhrTimeout');
-				xhr.send(data);
 			});
 		};
 
 
-		// INTERNAL OBJECT TYPES
+		/* INTERNAL OBJECT TYPES */
 		function ResumableFile(resumableObj, file) {
 
 			var _error = false;
 			var $ = this;
-			$.opts = {};
 			$.getOpt = resumableObj.getOpt;
 			$._prevProgress = 0;
 			$.resumableObj = resumableObj;
 			$.file = file;
-			$.fileName = file.fileName||file.name; // Some confusion in different versions of Firefox
+			$.fileName = file.fileName||file.name; /* Some confusion in different versions of Firefox */
 			$.size = file.size;
 			$.relativePath = file.webkitRelativePath || $.fileName;
 			$._pause = false;
 			$.container = '';
 			$.identifier = '';
 
-			// Callback when something happens within the chunk
+			/* Callback when something happens within the chunk */
 			var chunkEvent = function(event, message) {
 
-				// event can be 'success', 'error'
+				/* event can be 'success', 'error' */
 				switch(event) {
 
 					case 'error':
@@ -375,7 +349,7 @@
 				return $._pause;
 			};
 
-			// Bootstrap and return
+			/* Bootstrap and return */
 			$.bootstrap();
 
 			return(this);
@@ -385,7 +359,6 @@
 		function ResumableChunk(resumableObj, fileObj, offset, callback) {
 
 			var $ = this;
-			$.opts = {};
 			$.getOpt = resumableObj.getOpt;
 			$.resumableObj = resumableObj;
 			$.fileObj = fileObj;
@@ -395,62 +368,28 @@
 			$.callback = callback;
 			$.lastProgressCallback = (new Date);
 			$.retries = 0;
-			$.xhr = null;
 
-			// Computed properties
+			/* Computed properties */
 			var chunkSize = $.getOpt('chunkSize');
 			$.startByte = $.offset * chunkSize;
 			$.endByte = Math.min($.fileObjSize, ($.offset+1)*chunkSize);
 
-			if ($.fileObjSize - $.endByte < chunkSize) {
-				// The last chunk will be bigger than the chunk size, but less than 2*chunkSize
+			if($.fileObjSize - $.endByte < chunkSize) {
+
+				/* The last chunk will be bigger than the chunk size, but less than 2*chunkSize */
 				$.endByte = $.fileObjSize;
 			}
 
-			// test() makes a GET request without any data to see if the chunk has already been uploaded in a previous session
+			/* test() makes a GET request without any data to see if the chunk has already been uploaded in a previous session */
 			$.test = function() {
 
-				// Set up request and listen for event
-				$.xhr = new XMLHttpRequest();
+				/* Add data from the query options */
+				var data = new FormData();
 
-				var testHandler = function(e) {
-
-					var status = $.status();
-
-					var response = $.message();
-
-					//Corrupt, failed or other issue like logged out 401
-					if(response == '' || response.success == false || status != 'success') {
-
-						$.callback('error', 'Error...cancel upload');
-
-						//Cancel all uploads
-						$.fileObj.cancel();
-
-					} else if(status === 'success') {
-						
-						if(response.message == 'not_found') {
-
-							console.log("Save chunk!");
-
-							$.send();
-						
-						//message = found
-						} else {
-
-							console.log("Skip chunk!");
-					
-							$.resumableObj.uploadNextChunk();
-						}
-					}
-				};
-
-				$.xhr.addEventListener('load', testHandler, false);
-				$.xhr.addEventListener('error', testHandler, false);
-
-				// Set up the basic query data from Resumable
+				/* Set up the basic query data from Resumable */
 				var query = {
-					// Add extra data to identify chunk
+
+					/* Add extra data to identify chunk */
 					resumableChunkNumber: $.offset + 1,
 					resumableChunkSize: $.getOpt('chunkSize'),
 					resumableCurrentChunkSize: $.endByte - $.startByte,
@@ -462,16 +401,52 @@
 					resumableIdentifier: $.fileObj.identifier
 				};
 
-				// Add data from the query options
-				var data = new FormData();
-
 				$h.each(query, function(k,v) {
 					data.append(k,v);
 				});
 
-				$.xhr.open('POST', $.getOpt('checkTarget'));
-				$.xhr.timeout = $.getOpt('xhrTimeout');
-				$.xhr.send(data);
+				$.ajax({
+					xhr: function () {
+						var xhr = $.ajaxSettings.xhr();
+						xhr.upload.onprogress = function (e) {
+							console.log(Math.floor(e.loaded / e.total * 100) + '%');
+						};
+						return xhr;
+					},
+					contentType: false,
+					processData: false,
+					type: 'POST',
+					data: data,
+					url: $.getOpt("checkTarget"),
+					success: function(response) {
+
+						console.log("Successfully tested chunk!");
+					
+						if(response.message == 'not_found') {
+
+							console.log("Save chunk!");
+
+							$.send();
+						
+						/* message = found */
+						} else {
+
+							console.log("Skip chunk!");
+					
+							$.resumableObj.uploadNextChunk();
+						}
+					},
+					error: function() {
+
+						console.log("Error occured testing upload... cancelling upload!");
+
+						$.callback('error', 'Error...cancel upload');
+
+						/* Cancel all uploads */
+						$.fileObj.cancel();
+					},
+					complete: function() {}
+				});
 			};
 
 			// uploads the actual data in a POST call
@@ -479,36 +454,10 @@
 
 				console.log("Sending!");
 
-				// Set up request and listen for event
-				$.xhr = new XMLHttpRequest();
+				/* Add data from the query options */
+				var data = new FormData();
 
-				// Done (either done, failed)
-				var doneHandler = function(e) {
-
-					var status = $.status();
-
-					var response = $.message();
-
-					//Corrupt, failed or other issue like logged out 401
-					if(response == '' || response.success == false || status != 'success') {
-
-						$.callback('error', 'Error...cancel upload');
-
-						//Cancel all uploads
-						$.fileObj.cancel();
-
-					} else if(status == 'success') {
-
-						console.log("Successfully saved chunk!");
-				
-						$.resumableObj.uploadNextChunk();
-					}
-				};
-
-				$.xhr.addEventListener('load', doneHandler, false);
-				$.xhr.addEventListener('error', doneHandler, false);
-
-				// Set up the basic query data from Resumable
+				/* Set up the basic query data from Resumable */
 				var query = {
 					resumableChunkNumber: $.offset + 1,
 					resumableChunkSize: $.getOpt('chunkSize'),
@@ -524,64 +473,47 @@
 				var func = ($.fileObj.file.slice ? 'slice' : ($.fileObj.file.mozSlice ? 'mozSlice' : ($.fileObj.file.webkitSlice ? 'webkitSlice' : 'slice')));
 				var bytes = $.fileObj.file[func]($.startByte,$.endByte);
 
-				// Add data from the query options
-				var data = new FormData();
-
 				$h.each(query, function(k,v) { 
 					data.append(k,v);
 				});
 
-				//Append our actual data chunk
+				/* Append our actual data chunk */
 				data.append($.getOpt('fileParameterName'), bytes);
 
-				$.xhr.open('POST', $.getOpt('saveTarget'));
-				$.xhr.timeout = $.getOpt('xhrTimeout');
+				$.ajax({
+					xhr: function () {
+						var xhr = $.ajaxSettings.xhr();
+						xhr.upload.onprogress = function (e) {
+							console.log(Math.floor(e.loaded / e.total * 100) + '%');
+						};
+						return xhr;
+					},
+					contentType: false,
+					processData: false,
+					type: 'POST',
+					data: data,
+					url: $.getOpt("saveTarget"),
+					success: function(response) {
 
-				$.xhr.send(data);
-			};
+						console.log("Successfully saved chunk!");
+					
+						$.resumableObj.uploadNextChunk();
+					},
+					error: function() {
 
-			$.abort = function() {
-				// Abort and reset
-				if($.xhr) { 
-					$.xhr.abort();
-				}
+						console.log("Error occured cancelling upload!");
 
-				$.xhr = null;
-			};
+						$.callback('error', 'Error...cancel upload');
 
-			$.status = function() {
-
-				// Returns: 'pending', 'uploading', 'success', 'error'
-				if(!$.xhr) {
-
-					return('pending');
-
-				} else if($.xhr.readyState < 4) {
-
-				      // Status is really 'OPENED', 'HEADERS_RECEIVED' or 'LOADING' - meaning that stuff is happening
-				      return('uploading');
-
-				} else {
-
-					if($.xhr.status == 200) {
-
-						// HTTP 200, perfect
-						return('success');
-
-					} else {
-
-						// HTTP 415/500/501, permanent error
-						$.abort();
-
-						return('error');
+						/* Cancel all uploads */
+						$.fileObj.cancel();
+					},
+					complete: function() {
+						console.log("Complete");
 					}
-				}
+				});
 			};
-
-			$.message = function(){
-				return($.xhr ? JSON.parse($.xhr.responseText) : '');
-			};
-			
+	
 			return(this);
 		}
 

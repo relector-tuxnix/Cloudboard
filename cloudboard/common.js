@@ -6,8 +6,6 @@ var hbs = require('handlebars-form-helpers');
 var cuid = require('cuid');
 var gm = require('gm');
 var async = require('async');
-var db = require('./database.js');
-var pages = require('./pages.js');
 
 var $ = module.exports = require('../elastic-core/common.js');
 
@@ -18,132 +16,100 @@ var originalLocation = F.config['files-original-dir'];
 var mediumThumbLocation = F.config['files-medium-thumb-dir'];
 var smallThumbLocation = F.config['files-small-thumb-dir'];
 
-$.registerPages(pages);
+
+F.once('load', function() {
+ 
+	$.defaultLimit = F.config['default-item-limit'];
+
+	$.defaultTheme = F.config['default-theme'];
+
+	console.log(`LOADED CLOUDBOARD WITH THEME ${$.defaultTheme}`);
+
+	var pages = require(`./${$.defaultTheme}-pages.js`);
+
+	$.registerPages(pages);
+
+	$.processRoutes();	
+});
 
 
-$.EBStoreFile = function(self, callback) {
-
-	var user = self.user.id;
-	var totalSize = self.post.resumableTotalSize;
-	var type = self.post.resumableType;
-	var filename = self.post.resumableFilename;
-	var tags = JSON.parse(self.post.tags);
-	var allowPublic = self.post.allowPublic;
+$.CBStoreFile = function(user, totalSize, mime, filename, tags, allowPublic, callback) {
 
 	var generateFile = function() {
 
 		var body = {};
 		
-		body.key = cuid();
-		body.name = filename;		
-		body.user = user;
-		body.public = allowPublic;
-		body.active = false;
-		body.type = type;
-		body.size = totalSize;
-		body.success = 'Pending';
-		body.message = 'Waiting to start upload...'; 
-		body.tags = tags; 
-		body.meta = JSON.stringify({width: 0, height: 0});
-		body.created = new Date();
+		body._key = cuid();
+		body._type = "file";
+		body._name = filename;		
+		body._user = user;
+		body._public = allowPublic;
+		body._active = "false";
+		body._mime = mime;
+		body._size = totalSize;
+		body._success = 'Pending';
+		body._message = 'Waiting to start upload...'; 
+		body._tags = tags; 
+		body._meta = {width: 0, height: 0};
+		body._created = new Date();
 
-		$.EBIndex(body.key, body, 'files', 'file', function(response) {
+		$.ECStore(body._key, body, function(response) {
 
-			if(response.created == true) {
+			console.log(response);
 
-				callback(body);
-
-			} else {
-
-				callback(null);
-			}	
+			callback(body);
 		});
 	};
 
-	//If the file is not 'active' then allow it to be resumed, although further down the path 
-	// if the file is in a state of 'Processing' then don't allow it to be continued 
-	var body = { 
-		"query": {
-			"bool": {
-				"must": [
-					{ "match": { "name":  filename }},
-					{ "match": { "size" : totalSize }},
-					{ "match": { "user" : user }},
-					{ "match": { "active" : false }}
-				]
-			}
-		}
-	};
+	/*
+	 * If the file is not 'active' then allow it to be resumed, although further down the path 
+	 * if the file is in a state of 'Processing' then don't allow it to be continued 
+	 */
+	var query = [`_name = "${filename}"`, `_size = "${totalSize}"`, `_user = "${user}"`, `_active = "false"`];
 
-	console.log(body.query.bool.must);
+	$.ECGet(query, 3, [], [], [], function(result) {
 
-	db.client.search({
-		index: 'files',
-		type: 'file',
-		body: body 
-	}, function (err, response) {
-	
-		if(err == null) {
+		if(result.success == false) {
 
-			if(response.hits.hits.length == 0) {
+			console.log("FOUND NONE...so GENERATE!");
 
-				console.log("FOUND NONE...so GENERATE!");
-				generateFile();
+			generateFile();
 
-			} else if(response.hits.hits.length == 1) {
+		} else if(result.message.length == 1) {
 
-				console.log("FOUND 1..so UPDATING");
-				var file = response.hits.hits.pop()._source;
+			console.log("FOUND 1..so UPDATING");
 
-				//Reset the status of the file
-				file.success = "Pending";
-				file.message = 'Waiting to start upload...'; 
+			var file = result.message[0];
 
-				//We generate a date...as we sort by the created timestamp and we want the latest changes at the top
-				file.created = new Date();
+			//Reset the status of the file
+			file._success = "Pending";
+			file._message = 'Waiting to start upload...'; 
 
-				$.EBUpdateFile(file, function(newFile) {
+			//We generate a date...as we sort by the created timestamp and we want the latest changes at the top
+			file._created = new Date();
 
-					console.log(newFile);
-					callback(newFile);
-				});
+			$.ECStore(file._key, file, function(newFile) {
 
-			} else { 
+				console.log(newFile);
 
-				console.log("FOUND SEVERAL...although this should never happen!");
-
-				callback(null);
-			}
+				callback(newFile);
+			});
 
 		} else {
-			
-			console.log(err);
+	
+			console.log("FOUND SEVERAL...although this should never happen!");
+
 			callback(null);
 		}
 	});
 };
 
-$.EBUpdateFile = function(file, callback) {
-
-	$.EBIndex(file.key, file, 'files', 'file', function(response) {
-
-		//If we want to update the existing object not create it!
-		if(response.created == false) {		
-
-			callback(file);
-
-		} else {
-
-			callback(null);
-		}
-	});
-}
 
 function deleteFile(path, filename) {
 
-	fs.unlink(path + filename, function (err) {
+	fs.unlink(`${path}${filename}`, function (err) {
 
-		//If the file failed to be deleted its likely because it doesn't exist!
+		/* If the file failed to be deleted its likely because it doesn't exist! */
 		if(err != null) {
 
 			console.log(err);
@@ -151,9 +117,10 @@ function deleteFile(path, filename) {
 	});		
 };
 
-$.EBCompleteFile = function(file, callback) {
 
-	//Run ten simultaneous uploads
+$.CBCompleteFile = function(file, callback) {
+
+	/* Run ten simultaneous uploads */
 	var queue = async.queue(uploadFile, 10);
 
 	queue.drain = function() {
@@ -164,25 +131,26 @@ $.EBCompleteFile = function(file, callback) {
 
 		if(successful == true) {
 
-			file.success = 'Successful';
-			file.message = 'Successfully stored.';
-			file.active = true;
+			file._success = 'Successful';
+			file._message = 'Successfully stored.';
+			file._active = "true";
 	
 		} else {
 
-			file.success = 'Failed';
-			file.message = 'Could not process file.';
-			file.active = false;
+			file._success = 'Failed';
+			file._message = 'Could not process file.';
+			file._active = "false";
 		}
 
-		file.created = new Date();
+		file._created = new Date();
 
-		$.EBUpdateFile(newFile, function(finalFile) {
+		$.ECStore(newFile._key, newFile, function(finalFile) {
 
 			callback();
 		});
 	}); 
 };
+
 
 /*
  * As this is called asynchronously its possible a change to file (a shared object) may result in a change elsewhere
@@ -191,11 +159,9 @@ $.EBCompleteFile = function(file, callback) {
 function uploadFile(file, callback) {
 
 	console.log("UPPPPING FILES BITCH!!!");
-
-	console.log(file.key);
+	console.log(file._key);
 	
-
-	fs.rename(tmpStoreLocation + file.name, originalLocation + file.key, function(errFull) {
+	fs.rename(`${tmpStoreLocation}${file.name}`, `${originalLocation}${file.key}`, function(errFull) {
 			
 		if(errFull != null) {
 
@@ -205,7 +171,7 @@ function uploadFile(file, callback) {
 
 		} else {
 
-			console.log("FILE SAVED TO FILES: " + originalLocation + file.key);
+			console.log(`FILE SAVED TO FILES: ${originalLocation}${file.key}`);
 
 			if(file.type.indexOf('image/') == -1) {
 
@@ -213,7 +179,7 @@ function uploadFile(file, callback) {
 		
 			} else {
 
-				gm(originalLocation + file.key).resize('200', '200', '>').write(smallThumbLocation + file.key, function(errSmall) {
+				gm(`${originalLocation}${file.key}`).resize('200', '200', '>').write(`${smallThumbLocation}${file.key}`, function(errSmall) {
 
 					if(errSmall != null) {
 
@@ -227,7 +193,7 @@ function uploadFile(file, callback) {
 
 						console.log("Generating small thumb!");	
 
-						gm(originalLocation + file.key).resize('450', '450', '>').write(mediumThumbLocation + file.key, function(errMedium) {
+						gm(`${originalLocation}${file.key}`).resize('450', '450', '>').write(`${mediumThumbLocation}${file.key}`, function(errMedium) {
 
 							if(errMedium != null) {
 
@@ -253,304 +219,155 @@ function uploadFile(file, callback) {
 	});
 }
 
-$.EBGetFiles = function(self, callback) {
 
-	var body = {};
-	var limit = self.post.limit;
-	var user = self.user.id;
-	var startId = self.post.startId;
-	var order = self.post.order;
-	var active = self.post.active;
+$.CBGetFiles = function(user, range, last, order, limit, active, callback) {
 
-	body.query = {
-		"bool": {
-			"must": [
-				{ "match" : { "user" : user }},
-			]
-		}
-	};
+	var query = [`_type = "file"`];
 
-	if(startId != null && startId != '') {
+	if(user == null || user == "") {
 
-		body.query.bool.must.push({ "range" : { "key" : { "lt" : startId }}});
-	}
-
-	if(limit == null || limit == "") {
-		limit = 0;
-	}
-
-	 //Check if submitted limit is within specified bounds
-        if(limit < 1 || limit > defaultLimit) {
-
-                limit = defaultLimit;
-        } 
-
-	if(active != '') {
-
-		body.query.bool.must.push({"match" : { "active" : active }});
-	}
-
-	if(order == '' || order == "asc") {
-
-		body.sort = [
-			{ "created" : { "order" : "asc" }}
-		];
+		query.push(`_public = "true"`);
 
 	} else {
 
-		body.sort = [
-			{ "created" : { "order" : "desc" }}
-		];
+		query.push(`_user = "${user}"`);
 	}
 
-	db.client.search({
-		index: 'files',
-		type: 'file',
-		size: limit,
-		body: body
-	}, function (err, response) {
-	
-		if(err == null) {
+	if(active != null && active != "") {
 
-			var files = [];
+ 		query.push(`_active = "${active}"`);
+	}
 
-			for(var i = 0; i < response.hits.hits.length; i++) {
+	$.ECGet(query, 1, [], [], [], function(result) {
 
-				files.push(response.hits.hits[i]._source);
-			}
-
-			if(response.hits.hits.length < limit) {
-
-				callback({ success: true, message: 'Retrieved files.', end: true, files: files });
-
-			} else {
-
-				callback({ success: true, message: 'Retrieved files.', end: false, files: files });
-
-			}
-
-		} else {
-
-			callback({ success: false, message: err, end: false, files: [] });
-		}
-
+		callback(result);
 	});
 };
 
-$.EBGetFile = function(self, key, callback) {
 
-	var body = { 
-		"query": {
-			"bool": {
-				"must": [
-					{ "match": { "key" : key }}
-				]
-			}
-		}
-	};
+$.CBGetFile = function(user, key, callback) {
 
-	//Only look for public files
-	if(self.user == null) {
+	var query = [`_type = "file"`, `_key = "${key}"`];
 
-		body.query.bool.must.push({ "match" : { "public" : true }});
+	if(user == null || user == "") {
+
+		query.push(`_public = "true"`);
 
 	} else {
 
-		body.query.bool.must.push({ "match" : { "user" : self.user.id }});
+		query.push(`_user = "${user}"`);
 	}
 
-	db.client.search({
-		index: 'files',
-		type: 'file',
-		limit: 1,
-		body: body
-	}, function (err, response) {
-	
-		if(err == null) {
+	$.ECGet(query, 1, [], [], [], function(result) {
 
-			if(response.hits.hits.length == 0) {
+		callback(result);
+	});
+};
 
-				callback({success: false, message: 'Could not find file.', file: null});
 
-			} else {
-				
-				var file = response.hits.hits.pop();
-		
-				callback({ success: true, message: "Found file.", file: file._source });
-			}
+$.CBSaveTag = function(user, key, tag, callback) {
+
+	var query = [`_key = "${key}"`, `_user = "${user}"`];
+
+	$.ECGet(query, 1, [], [], [], function(result) {
+
+		if(result.success == false) {
+
+			callback({success: false, message: 'Could not find file.'});
 
 		} else {
+			
+			var file = result.message[0];
+	
+			if(file._tags.indexOf(tag) != -1) {
 
-			callback({success: false, message: err, file: null});
+				callback({success: false, messsage: 'Tag already applied to file.'});
+
+			} else {
+
+				file._tags.push(tag);
+
+				$.ECStore(file._key, file, function(result) {
+			
+					callback(result);
+				});
+			}
 		}
 	});
 };
 
-$.EBSaveTag = function(self, callback) {
 
-	var key = self.post.key;
-	var user = self.user.id;
-	var tag = self.post.tag;
+$.CBRemoveTag = function(user, key, tag, callback) {
 
-	db.client.search({
-		index: 'files',
-		type: 'file',
-		limit: 1,
-		body: {
-			"query": {
-				"bool": {
-					"must": [
-						{ "match": { "key" : key }},
-						{ "match": { "user" : user }},
-					]
-				}
-			}
-		}
-	}, function (err, response) {
+	var query = [`_key = "${key}"`, `_user = "${user}"`, `"${tag}" IN _tags`];
+
+	$.ECGet(query, 1, [], [], [], function(result) {
+
+		if(result.success == false) {
+
+			callback({success: false, message: 'Could not find file.'});
+
+		} else {
+			
+			var file = result.message[0];
 	
-		if(err == null) {
+			if(file._tags.indexOf(tag) == -1) {
 
-			if(response.hits.hits.length == 0) {
-
-				callback({success: false, message: 'Could not find file.'});
+				callback({success: false, messsage: 'Tag not applied to file.'});
 
 			} else {
-				
-				var file = response.hits.hits.pop();
-		
-				if(file._source.tags.indexOf(tag) != -1) {
-	
-					callback({success: false, messsage: 'Tag already applied to file.'});
 
-				} else {
+				file._tags.pop(tag);
 
-					file._source.tags.push(tag);
-
-					$.EBUpdateFile(file._source, function(newFile) {
-				
-						if(newFile != null) {
-
-							callback({success: true, message: "File updated to include tag."});
-
-						} else {
-					
-							callback({success: false, message: "Could not update file."});
-						}
-					});
-				}
+				$.ECStore(file._key, file, function(result) {
+			
+					callback(result);
+				});
 			}
+		}
+	});
+};
+
+
+$.CBRemoveFile = function(user, key, callback) {
+
+	var query = [`_key = "${key}"`, `_user = "${user}"`];
+
+	$.ECGet(query, 1, [], [], [], function(result) {
+
+		if(result.success == false) {
+
+			callback({success: false, message: "Could not find file to delete."});
 
 		} else {
 
-			callback({success: false, message: err});
-		}
-	});
-}
+			var file = result.message[0];
 
-$.EBRemoveTag = function(self, callback) {
+			$.ECDelete(file._key, function(result) {
 
-	var key = self.post.key;
-	var user = self.user.id;
-	var tag = self.post.tag;
+				if(result.success == false) {
 
-	db.client.search({
-		index: 'files',
-		type: 'file',
-		limit: 1,
-		body: {
-			"query": {
-				"bool": {
-					"must": [
-						{ "match": { "key" : key }},
-						{ "match": { "user" : user }},
-					]
-				}
-			}
-		}
-	}, function (err, response) {
-	
-		if(err == null) {
-
-			if(response.hits.hits.length == 0) {
-
-				callback({success: false, message: 'Could not find file.'});
-
-			} else {
-				
-				var file = response.hits.hits.pop();
-		
-				if(file._source.tags.indexOf(tag) == -1) {
-	
-					callback({success: false, messsage: 'Tag is not applied to file so no need to remove.'});
+					callback({success: false, message: "Failed to delete."});
 
 				} else {
 
-					file._source.tags.pop(tag);
+					/* Delete the original file */
+					deleteFile(originalLocation, file._key);
 
-					$.EBUpdateFile(file._source, function(newFile) {
-				
-						if(newFile != null) {
-
-							callback({success: true, message: "Tag removed from file."});
-
-						} else {
-					
-							callback({success: false, message: "Could not update file."});
-						}
-					});
-				}
-			}
-
-		} else {
-
-			callback({success: false, message: err});
-		}
-	});
-}
-
-$.EBRemoveFile = function(self, callback)
-{
-	var key = self.post.key;
-
-	$.EBGetFile(self, key, function(result) {
-
-		if(result.success == true) {		
-
-			var file = result.file;
-
-			db.client.delete({
-				index: 'files',
-				type: 'file',
-				id: key
-			}, function (err, response) {
-
-				if(err == null) {
-
-					//Delete the original file
-					deleteFile(originalLocation, file.key);
-
-					//If its not an image then we don't need to delete the thumbnails
-					if(file.type.indexOf('image/') == -1) {
+					/* If its not an image then we don't need to delete the thumbnails */
+					if(file._mime.indexOf('image/') == -1) {
 
 						callback({success: true, message: 'File deleted'}); 
 
 					} else {
 
-						deleteFile(mediumThumbLocation, file.key);
-						deleteFile(smallThumbLocation, file.key);
+						deleteFile(mediumThumbLocation, file._key);
+						deleteFile(smallThumbLocation, file._key);
 
 						callback({success: true, message: 'File deleted'}); 
 					}
-
-				} else {
-
-					callback({success: false, message: "Failed to delete."});
 				}
 			});
-
-		} else {
-
-			callback({success: false, message: "Failed to delete."});
 		}
 	});
-}
+};

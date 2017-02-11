@@ -42,7 +42,8 @@ $.apiCheckFile = {
 $.apiSaveFile = {
 	uri: '/api/save-file',
 	controller: 'cloudboard/api.js',
-	flags: { flags : ['+xhr', 'upload', 'post', 'authorize'], length: 819200 },
+	flags : ['+xhr', 'upload', 'post', 'authorize'],
+	length: 819200,
 	label: 'Save File',
 }
 

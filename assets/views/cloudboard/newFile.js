@@ -1,13 +1,9 @@
+
 $(document).ready(function() {
 
-	var r = new Resumable({
-		bootstrapTarget: '{{pages.apiBootstrapFile.uri}}',
-		checkTarget: '{{pages.apiCheckFile.uri}}',
-		saveTarget: '{{pages.apiSaveFile.uri}}',
-		simultaneousUploads: 1
-	});
+	var r = new Resumable('{{pages.apiBootstrapFile.uri}}', '{{pages.apiCheckFile.uri}}', '{{pages.apiSaveFile.uri}}');
 
-	// Resumable.js isn't supported, fall back on a different method
+	/* Resumable.js isn't supported, fall back on a different method */
 	if(!r.support) {
 
 		window.location.replace('{{pages.home.uri}}');
@@ -17,21 +13,25 @@ $(document).ready(function() {
 
 	function addToProcessing(file) {
 
-		//If we are adding a file that being processed then don't enable the cancel button...as it can't be cancelled now
-		if(file.success != "Processing") {
+		/* If we are adding a file that being processed then don't enable the cancel button...as it can't be cancelled now */
+		if(file._success != "Processing") {
+
 			$('#progress-cancel-link').removeClass('button-disabled');
 		}
 
 		var found = false;
 
 		for(var i = 0; i < checkProcessing.length; i++) {
+
 			if(checkProcessing[i] == file) {
+
 				found = true;
 				break;
 			}
 		}
 
 		if(found == false) {
+
 			checkProcessing.push(file);
 		}
 	};
@@ -42,14 +42,15 @@ $(document).ready(function() {
 
 		for(var i = 0; i < checking.length; i++) {
 
-			if(checking[i].key == key) {
+			if(checking[i]._key == key) {
 
 				checkProcessing.splice(i, 1);
 			}
 		}
 
-		//We have removed all items to be processed so don't show action buttons
+		/* We have removed all items to be processed so don't show action buttons */
 		if(checkProcessing.length == 0) {
+
 			$('#progress-resume-link').addClass('button-disabled');
 			$('#progress-pause-link').addClass('button-disabled');
 			$('#progress-cancel-link').addClass('button-disabled');
@@ -60,42 +61,40 @@ $(document).ready(function() {
 
 		var checking = checkProcessing.slice(0);
 
-		//We are checking this file so remove it so it won't be checked again until it has been first checked
+		/* We are checking this file so remove it so it won't be checked again until it has been first checked */
 		checkProcessing = [];
 
 		for(var i = 0; i < checking.length; i++) {
 
 			var file = checking[i];
 
-			if(file.success == "Successful" || file.success == "Failed") {
+			if(file._success == "Successful" || file._success == "Failed") {
 				continue;
 			}
 
 			var getFile = $.ajax({
 				type: "POST", 
-				url: '{{pages.apiGetFile.uri}}', 
+				url: '{{pages.apiGetFile.uri}}',
 				data: { 
-					id : file.key
+					key : file._key
 				}
 			});
 
 			getFile.done(function(result) {
 
-				console.log(result);
-
 				if(result.success == true) {
 
-					var processingFile = result.file;
+					var processingFile = result.message[0];
 
-					//We are uploading the file...or processing it...so update the history to prevent flickering
-					if(processingFile.success == "Processing" || processingFile.success == "Uploading" || processingFile.success == "Pending") {
+					/* We are uploading the file...or processing it...so update the history to prevent flickering */
+					if(processingFile._success == "Processing" || processingFile._success == "Uploading" || processingFile._success == "Pending") {
 
 						updateHistory(processingFile, 'prepend', 'update');
 
 						addToProcessing(processingFile);
 
-					//It is at an end state of Failed or Success, so update the history to the top of the list
-					} else if(processingFile.success == "Successful" || processingFile.success == "Failed") {
+					/* It is at an end state of Failed or Success, so update the history to the top of the list */
+					} else if(processingFile._success == "Successful" || processingFile._success == "Failed") {
 
 						updateHistory(processingFile, 'prepend', 'remove');
 					}
@@ -120,21 +119,21 @@ $(document).ready(function() {
 		r.setTags(tags);
 	}
 	
-	// Handle file add event
+	/* Handle file add event */
 	r.on('fileAdded', function(file) {
 
-		// Show pause, hide resume
+		/* Show pause, hide resume */
 		$('#progress-resume-link').addClass('button-disabled');
 		$('#progress-pause-link').removeClass('button-disabled');
 		$('#progress-cancel-link').removeClass('button-disabled');
 			
 		updateHistory(file, 'prepend', 'remove');
 
-		if(file.success == "Processing" || file.success == "Uploading" || file.success == "Pending") {
+		if(file._success == "Processing" || file._success == "Uploading" || file._success == "Pending") {
 			addToProcessing(file);
 		}
 
-		// Actually start the upload
+		/* Actually start the upload */
 		r.upload();
 	});
 
@@ -145,7 +144,7 @@ $(document).ready(function() {
 	
 	r.on('complete', function() {
 
-		// Hide pause/resume when the upload has completed
+		/* Hide pause/resume when the upload has completed */
 		$('#progress-resume-link').addClass('button-disabled');
 		$('#progress-pause-link').addClass('button-disabled');
 		$('#progress-cancel-link').addClass('button-disabled');
@@ -153,7 +152,7 @@ $(document).ready(function() {
 
 	r.on('fileError', function(file, message) {
 
-		// Reflect that the file upload has resulted in error
+		/* Reflect that the file upload has resulted in error */
 		//console.log(message);
 
 		//updateHistory(file);
@@ -166,7 +165,7 @@ $(document).ready(function() {
 	
 	r.on('uploadStart', function() {
 
-		// Show pause, hide resume
+		/* Show pause, hide resume */
 		$('#progress-resume-link').addClass('button-disabled');
 		$('#progress-pause-link').removeClass('button-disabled');
 		$('#progress-cancel-link').removeClass('button-disabled');
@@ -206,7 +205,7 @@ $(document).ready(function() {
 
 				removeProcessing(key);
 
-				var item = $('#history .history-item[data-id="' + key + '"]');
+				var item = $(`#history .history-item[data-id="${key}"]`);
 
 				$(item).remove();
 
@@ -237,10 +236,10 @@ $(document).ready(function() {
 
 			for(var i = 0; i < checking.length; i++) {
 
-				//We don't want to cancel something thats being processed
-				if(checking[i].success != "Processing") {
+				/* We don't want to cancel something thats being processed */
+				if(checking[i]._success != "Processing") {
 
-					removeOne(checking[i].key);
+					removeOne(checking[i]._key);
 				}
 			}
 		}
@@ -257,7 +256,7 @@ $(document).ready(function() {
 
 		var exists = r.resumeOne(key);
 
-		//We need to select the file to be uploaded to continue uploading
+		/* We need to select the file to be uploaded to continue uploading */
 		if(exists == false) {
 
 			$('#upload').trigger('click');
@@ -294,7 +293,7 @@ $(document).ready(function() {
 
 		$(this).closest('.progress-bar').children('h5').text('Public Access Allowed');
 
-		//By removing actions class we hide the button
+		/* By removing actions class we hide the button */
 		$(this).closest('.progress-bar').removeClass().addClass('progress-bar pending');
 
 		r.setPublic(true);
@@ -352,9 +351,10 @@ $(document).ready(function() {
 
 	function updateHistory(file, order, action) {
 
-		var item = $('#history .history-item[data-id="' + file.key + '"]');
+		var item = $(`#history .history-item[data-id="${file._key}"]`);
 
 		if(item.length != 0 && action == 'remove') {
+
 			$(item).remove();
 
 			item = null;
@@ -366,7 +366,7 @@ $(document).ready(function() {
 
 			$(item).removeAttr('id');				
 
-			$(item).attr('data-id', file.key);
+			$(item).attr('data-id', file._key);
 
 			if(order == "prepend") {
 
@@ -378,7 +378,7 @@ $(document).ready(function() {
 			}
 		}
 
-		$(item).find('.message').find('h5').text(file.message);
+		$(item).find('.message').find('h5').text(file._message);
 
 		$(item).find('.message').find('.loading').width(0);
 
@@ -391,8 +391,8 @@ $(document).ready(function() {
 
 		if(file.active == true) {
 		
-			$(item).find('a.filename').attr('href', "{{pages.returnFile.original}}" + file.key);
-			$(item).find('a.filename').text(file.name);
+			$(item).find('a.filename').attr('href', `"{{pages.returnFile.original}}${file._key}"`);
+			$(item).find('a.filename').text(file._name);
 	
 			$(item).find('span.filename').css('display', 'none');
 			$(item).find('a.filename').css('display', 'inline-block');
@@ -402,7 +402,7 @@ $(document).ready(function() {
 			$(item).find('span.filename').css('display', 'inline-block');
 			$(item).find('a.filename').css('display', 'none');
 
-			$(item).find('span.filename').text(file.name);
+			$(item).find('span.filename').text(file._name);
 
 			if(file.success == "Pending") {
 
@@ -411,7 +411,7 @@ $(document).ready(function() {
 	
 			} else if(file.success == "Uploading") {
 
-				$(item).find('.message').find('.loading').width(file.message);
+				$(item).find('.message').find('.loading').width(file._message);
 				$(progressBar).addClass('uploading');
 				$(progressBar).addClass('actions');
 
@@ -424,20 +424,33 @@ $(document).ready(function() {
 
 	function getHistory() {
 
-		$.post('{{pages.apiGetFiles.uri}}', {active: '', startId: '', limit: 25, order: 'desc'}, function(data) {
-					
-			if(data.success == true) {
-				
-				data.files.forEach(function(file) {
-					
-					updateHistory(file, 'append', 'remove');
-
-					//If a file is Processing or is Uploading then lets listen for updates
-					if(file.success == "Processing" || file.success == "Uploading" || file.success == "Pending") {
-						addToProcessing(file);
-					}
-				});
+		var getFiles = $.ajax({
+			type: "POST", 
+			url: '{{pages.apiGetFiles.uri}}', 
+			data: { 
+				range    :  [],
+				last     :  '',
+				limit    :  25,
+				order    :  ["_key", "DESC"],
+				active   : ''
 			}
+		});
+
+		getFiles.done(function(result) {
+
+			result.message.forEach(function(file) {
+					
+				updateHistory(file, 'append', 'remove');
+
+				/* If a file is Processing or is Uploading then lets listen for updates */
+				if(file._success == "Processing" || file._success == "Uploading" || file._success == "Pending") {
+					addToProcessing(file);
+				}
+			});
+		});
+
+		getFiles.fail(function(jqXHR, status, error) {
+
 		});
 	}
 
@@ -461,7 +474,6 @@ $(document).ready(function() {
 
 		$(this).removeClass('resumable-dragover');
 	});
-
 	
 	$('#grid').on('click', '.new-tag-text', function() {
 
@@ -470,7 +482,7 @@ $(document).ready(function() {
 
 	$('#grid').on('click', '.new-tag-button', function() {
 
-		//Text will need to be validated here!!
+		/* Text will need to be validated here!! */
 		var tag = $(this).prev().text();
 
 		var selected = this;
@@ -508,13 +520,12 @@ $(document).ready(function() {
 	$('#progress-cancel-link').addClass('button-disabled');
 
 
-	//How frequently we should poll the server for file changes
+	/* How frequently we should poll the server for file changes */
 	var timer = setInterval(checkHistory, 5000);
 
 	r.assignDrop($('#resumable-drop')[0]);
 	r.assignBrowse($('.resumable-browse')[0], $('#upload')[0]);
 
-	//Lets get started!
+	/* Lets get started! */
 	getHistory();
 });
-

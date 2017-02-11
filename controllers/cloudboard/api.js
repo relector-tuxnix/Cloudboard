@@ -8,50 +8,42 @@ $.apiGetFiles = function() {
 
 	var self = this;
 
-	if(self.post.active == null) {
+	var user = self.user._id;
+	var range = self.body["range[]"];
+	var last = self.body["last[]"];
+	var order = self.body["order[]"];
+	var limit = self.body.limit;
+	var active = self.body.active;
 
-		self.json({success: false, message: "Expecting active state boolean.", end: false, files: [] })
-
-	} else if(self.post.startId == null) {
-
-		self.json({success: false, message: "Expecting next start identification: _id.", end: false, files: [] })
-
-	} else if(self.post.limit == null) {
-
-		self.json({success: false, message: "Expecting limit integer.", end: false, files: [] })
-
-	} else if(self.post.order == null) {
-
-		self.json({success: false, message: "Expecting order integer.", end: false, files: [] })
-
-	} else {
-
-		common.EBGetFiles(self, function(result) {
-
-			self.json(result);
-		});
-	}
-};
-
-$.apiGetFile = function() {
-
-	var self = this;
-
-	var key = self.post.id;
-
-	common.EBGetFile(self, key, function(result) {
+	common.CBGetFiles(user, range, last, order, limit, active, function(result) {
 
 		self.json(result);
 	});
 };
 
-//Need to do serious security checks here!
+$.apiGetFile = function() {
+
+	var self = this;
+	
+	var user = self.user._id;
+	var key = self.body.key;
+
+	common.CBGetFile(user, key, function(result) {
+
+		self.json(result);
+	});
+};
+
+/* Need to do serious security checks here! */
 $.apiReturnFile = function(type, key) {
 
 	var self = this;
 
-	//Check user has that file in db and if they do return it with the mime type set...otherwise return 404
-	common.EBGetFile(self, key, function(result) {
+	var user = self.user._id;
+	var key = self.body.key;
+
+	/* Check user has that file in db and if they do return it with the mime type set...otherwise return 404 */
+	common.CBGetFile(user, key, function(result) {
 
 		if(result.success == false) {
 
@@ -59,16 +51,18 @@ $.apiReturnFile = function(type, key) {
 
 		} else {
 
+			var file = result.message[0];
+
 			//Set the download name to the orignal filename rather then the file key
 			var headers = [];
-			headers['Content-Type'] = result.file.type;
+			headers['Content-Type'] = file._mime;
 			headers['Access-Control-Allow-Origin'] = '*';
 
-			var filename = self.config['files-' + type + '-dir'] + result.file.key;
+			var filename = self.config[`"files-${type}-dir"`] + file._key;
 
 			var fullPath = F.path.root(filename);
 
-			fs.exists(fullPath, function (exists) {
+			fs.exists(fullPath, function(exists) {
 			
 				if(exists == false) {
 
@@ -76,7 +70,7 @@ $.apiReturnFile = function(type, key) {
 			
 				} else {
 
-					self.file('~' + fullPath, result.file.name, headers);
+					self.file('~' + fullPath, file._name, headers);
 				}
 			});
 		}
@@ -87,11 +81,18 @@ $.apiBootstrapFile = function() {
 
 	var self = this;
 
-	common.EBStoreFile(self, function(file) {
+	var user = self.user._id;
+	var totalSize = self.body.resumableTotalSize;
+	var mime = self.body.resumableType;
+	var filename = self.body.resumableFilename;
+	var tags = self.body["tags[]"];
+	var allowPublic = self.body.allowPublic;
+
+	common.CBStoreFile(user, totalSize, mime, filename, tags, allowPublic, function(file) {
 
 		if(file == null) {
 
-			self.json({success: false, message: 'An error occued during the upload.', file: null});
+			self.view500('An error occued during the upload. Could not bootstrap file.');
 
 		} else {
 
@@ -104,26 +105,28 @@ $.apiCheckFile = function() {
 
 	var self = this;
 
-	var key = self.post.resumableIdentifier;
-	var chunkNumber = self.post.resumableChunkNumber;
-	var totalChunks = self.post.resumableTotalChunks;
+	var user = self.user._id;
+	var key = self.body.resumableIdentifier;
+	var chunkNumber = self.body.resumableChunkNumber;
+	var totalChunks = self.body.resumableTotalChunks;
 
-	//Returns: FOUND, NOT_FOUND
+	/* Returns: FOUND, NOT_FOUND */
 	resumable.get(self, function(status) {
 
-		common.EBGetFile(self, key, function(result) {
+		common.CBGetFile(user, key, function(result) {
 
-			if(result == null || result.success == false) {
+			if(result.success == false) {
 
 				self.json({success: false, message: 'An error occued during the upload.'});
 
 			} else {
 
-				var file = result.file; 
+				var file = result.message[0]; 
+
 				file.success = 'Uploading';
 				file.message = Math.round((chunkNumber / totalChunks) * 100) + '%';
 
-				common.EBUpdateFile(file, function(newFile) {
+				common.ECStore(file._key, file, function(newFile) {
 
 					if(newFile == null) {
 
@@ -151,38 +154,38 @@ $.apiSaveFile = function() {
 
 	var self = this;
 
-	//Do not delete temporary files until the end of the request
+	var user = self.user._id;
+	var key = self.body.resumableIdentifier;
+
+	/* Do not delete temporary files until the end of the request */
 	self.noClear(true);	
 
-	var user = self.user.id;
-	var key = self.post.resumableIdentifier;
+	common.CBGetFile(user, key, function(result) {
 
-	common.EBGetFile(self, key, function(result) {
-
-		if(result == null || result.success == false) {
+		if(result.success == false) {
 
 			self.json({success: false, message: 'An error occued during the upload.', file: null});
 
 		} else {
 
-			var file = result.file; 
+			var file = result.message[0]; 
 
-			//Returns: DONE, PARTLY_DONE, FAILED
+			/* Returns: DONE, PARTLY_DONE, FAILED */
 			resumable.post(self, function(status) {
 
-				console.log("STATSS" + status);
-				console.log(self.post.resumableChunkNumber);
+				console.log(`STATUS: '${status}'`);
+				console.log(file._key);
 
 				if(status == 'done') {
 
-					file.success = 'Processing';
-					file.message = 'Post Processing...';
-					file.active = false;
-					file.created = new Date();
+					file._success = 'Processing';
+					file._message = 'Post Processing...';
+					file._active = false;
+					file._created = new Date();
 
-					common.EBUpdateFile(file, function(finalFile) {
+					common.ECStore(file._key, file, function(finalFile) {
 
-						if(finalFile == null) {
+						if(finalFile.success == false) {
 
 							self.json({success: false, message: 'Failed to complete file upload.'});
 
@@ -192,40 +195,35 @@ $.apiSaveFile = function() {
 						}	
 					});
 
-					//Move the chunks into a single file to be processed!
+					/* Move the chunks into a single file to be processed! */
 					resumable.completeFile(self, function(status) {
 
-						//Now move the temp file to the file store and perform any manipulations to the file
-						// The user does not need to wait for this due to it potentially being very slow process...especially large files
-						// If the status is failed from completeFile then we will let EBCompleteFile handle it and update the status
-						common.EBCompleteFile(file, function() {
+						/* 
+						 * Now move the temp file to the file store and perform any manipulations to the file
+						 * The user does not need to wait for this due to it potentially being very slow process...especially large files
+						 * If the status is failed from completeFile then we will let EBCompleteFile handle it and update the status
+						 */
+						common.CBCompleteFile(file, function() {
 
-							//Remove the temporary upload files
-							resumable.clean(self, key);
+							/* Remove the temporary upload files */
+							resumable.clean(self, file._key);
 						});
 					});
 
 				} else if(status == 'failed') {
 
-					file.success = 'Failed';
-					file.message = 'Failed to upload file.';
+					file._success = 'Failed';
+					file._message = 'Failed to upload file.';
 
-					//Remove the temporary upload files
-					resumable.clean(self, key);
+					/* Remove the temporary upload files */
+					resumable.clean(self, file._key);
 
-					common.EBUpdateFile(file, function(newFile) {
+					common.ECStore(file._key, file, function(result) {
 
-						if(newFile == null) {
-
-							self.json({success: false, message: 'Failed to update file.'});
-
-						} else {
-						
-							self.json({success: false, message: status});
-						}
+						self.json(result)
 					});
 
-				//partly_done
+				/* partly_done */
 				} else {
 
 					self.json({success: true, message: status});
@@ -239,7 +237,10 @@ $.apiRemoveFile = function() {
 
 	var self = this;
 
-	common.EBRemoveFile(self, function(result) {
+	var key = self.body.key;
+	var user = self.user._id;
+
+	common.CBRemoveFile(user, key, function(result) {
 
 		self.json(result);	
 	});
@@ -249,7 +250,11 @@ $.apiSaveTag = function() {
 
 	var self = this;
 
-	common.EBSaveTag(self, function(result) {
+	var key = self.body.key;
+	var user = self.user._id;
+	var tag = self.body.tag;
+
+	common.CBSaveTag(user, key, tag, function(result) {
 
 		self.json(result);
 	});
@@ -259,7 +264,11 @@ $.apiRemoveTag = function() {
 
 	var self = this;
 
-	common.EBRemoveTag(self, function(result) {
+	var key = self.body.key;
+	var user = self.user._id;
+	var tag = self.body.tag;
+
+	common.CBRemoveTag(user, key, tag, function(result) {
 
 		self.json(result);
 	});

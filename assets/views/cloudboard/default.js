@@ -52,32 +52,37 @@ $(document).ready(function() {
 		});
 	};
 
-	function getFiles(startId, limit) {
+	function getFiles(lastItem, limit) {
 
-		$.post('{{pages.apiGetFiles.uri}}', {active: 'true', startId : startId, limit: limit, order: 'desc'}, function(data) {
-					
-			if(data.success == true) {
-				
-				if(data.end == true) {
-
-					$('#load-more').hide();
-
-				} else {
-					
-					if($("#grid li").size() > 100) {
-						clearGrid();	
-					}
-				
-				}
-			
-				var lastElement = $(".polaroid").last();
-
-				generateGrid(data.files);
-
-				showDetails(false);
-
-				$('html, body').animate({scrollTop:$(lastElement).offset().top - 90}, "slow");
+		var getFiles = $.ajax({
+			type: "POST", 
+			url: '{{pages.apiGetFiles.uri}}', 
+			data: { 
+				range    :  [],
+				last     :  lastItem,
+				limit    :  limit,
+				order    :  ["_key", "DESC"],
+				active   : 'true'
 			}
+		});
+
+		getFiles.done(function(result) {
+
+			if($("#grid li").size() > 100) {
+				clearGrid();	
+			}
+	
+			var lastElement = $(".polaroid").last();
+
+			generateGrid(result.message);
+
+			showDetails(false);
+
+			$('html, body').animate({scrollTop:$(lastElement).offset().top - 90}, "slow");
+		});
+
+		getFiles.fail(function(jqXHR, status, error) {
+
 		});
 	}
 
@@ -363,7 +368,7 @@ $(document).ready(function() {
 			type: "POST", 
 			url: '{{pages.apiGetFile.uri}}', 
 			data: { 
-				id : selectedId
+				key : selectedId
 			}
 		});
 

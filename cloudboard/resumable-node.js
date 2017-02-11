@@ -72,13 +72,13 @@ module.exports = resumable = function() {
 	//'not_found'
 	$.get = function(self, callback) {
 
-		var chunkNumber = self.post.resumableChunkNumber;
-		var chunkSize = self.post.resumableChunkSize;
-		var totalSize = self.post.resumableTotalSize;
-		var identifier = self.post.resumableIdentifier;
-		var filename = self.post.resumableFilename;
-		var originalFilename = self.post.resumableRelativePath;
-		var totalChunks = self.post.resumableTotalChunks;
+		var chunkNumber = self.body.resumableChunkNumber;
+		var chunkSize = self.body.resumableChunkSize;
+		var totalSize = self.body.resumableTotalSize;
+		var identifier = self.body.resumableIdentifier;
+		var filename = self.body.resumableFilename;
+		var originalFilename = self.body.resumableRelativePath;
+		var totalChunks = self.body.resumableTotalChunks;
 
 		var validate = validateRequest(chunkNumber, chunkSize, totalSize, identifier, filename);
 
@@ -121,11 +121,11 @@ module.exports = resumable = function() {
 		}
 
 		var file = self.files.pop();
-		var chunkNumber = self.post.resumableChunkNumber;
-		var chunkSize = self.post.resumableChunkSize;
-		var totalSize = self.post.resumableTotalSize;
-		var identifier = self.post.resumableIdentifier;
-		var totalChunks = self.post.resumableTotalChunks;
+		var chunkNumber = self.body.resumableChunkNumber;
+		var chunkSize = self.body.resumableChunkSize;
+		var totalSize = self.body.resumableTotalSize;
+		var identifier = self.body.resumableIdentifier;
+		var totalChunks = self.body.resumableTotalChunks;
 
 		var validate = validateRequest(chunkNumber, chunkSize, totalSize, identifier, file.length);
 
@@ -175,8 +175,8 @@ module.exports = resumable = function() {
 
 	$.completeFile = function(self, callback) {
 
-		var identifier = self.post.resumableIdentifier;
-		var filename = self.post.resumableFilename;
+		var identifier = self.body.resumableIdentifier;
+		var filename = self.body.resumableFilename;
 
 		var completeFile = path.join($.temporaryFolder, filename);
 
@@ -195,7 +195,7 @@ module.exports = resumable = function() {
 		});
 	};
 
-	// Pipe chunks directly in to an existsing WritableStream to create a single file
+	/* Pipe chunks directly in to an existsing WritableStream to create a single file */
 	$.write = function(self, identifier, writableStream) {
 
 		// Iterate over each chunk
